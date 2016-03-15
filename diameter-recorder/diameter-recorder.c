@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <zmq.h>
 
 /* Receives the next zmq message part as a string.
@@ -17,7 +16,7 @@ receive_next_part (void *socket)
 	int ok;
 
 	ok = zmq_msg_init (&msg);
-	assert (ok == 0);
+	g_return_val_if_fail (ok == 0, NULL);
 
 	n_bytes = zmq_msg_recv (&msg, socket, 0);
 	if (n_bytes > 0)
@@ -29,7 +28,7 @@ receive_next_part (void *socket)
 	}
 
 	ok = zmq_msg_close (&msg);
-	assert (ok == 0);
+	g_return_val_if_fail (ok == 0, NULL);
 
 	return str;
 }
@@ -50,14 +49,14 @@ receive_pupil_message (void  *socket,
 	size_t more_size = sizeof (more);
 	int ok;
 
-	assert (topic != NULL && *topic == NULL);
-	assert (json_data != NULL && *json_data == NULL);
+	g_return_val_if_fail (topic != NULL && *topic == NULL, FALSE);
+	g_return_val_if_fail (json_data != NULL && *json_data == NULL, FALSE);
 
 	*topic = receive_next_part (socket);
 
 	/* Determine if more message parts are to follow. */
 	ok = zmq_getsockopt (socket, ZMQ_RCVMORE, &more, &more_size);
-	assert (ok == 0);
+	g_return_val_if_fail (ok == 0, FALSE);
 	if (!more)
 	{
 		return FALSE;
@@ -69,7 +68,7 @@ receive_pupil_message (void  *socket,
 	 * There must be exactly two parts. If there are more, it's an error.
 	 */
 	ok = zmq_getsockopt (socket, ZMQ_RCVMORE, &more, &more_size);
-	assert (ok == 0);
+	g_return_val_if_fail (ok == 0, FALSE);
 	if (more)
 	{
 		return FALSE;
@@ -88,21 +87,16 @@ main (void)
 
 	context = zmq_ctx_new ();
 	subscriber = zmq_socket (context, ZMQ_SUB);
-	printf ("connecting...\n");
 	ok = zmq_connect (subscriber, "tcp://localhost:5000");
-	assert (ok == 0);
-	printf ("connected.\n");
+	g_assert (ok == 0);
 
-	printf ("set filter...\n");
 	filter = "pupil_positions";
 	ok = zmq_setsockopt (subscriber,
 			     ZMQ_SUBSCRIBE,
 			     filter,
 			     strlen (filter));
-	assert (ok == 0);
-	printf ("filter set.\n");
+	g_assert (ok == 0);
 
-	printf ("receiving messages...\n");
 	while (TRUE)
 	{
 		char *topic = NULL;
@@ -122,5 +116,6 @@ main (void)
 
 	zmq_close (subscriber);
 	zmq_ctx_destroy (context);
+
 	return EXIT_SUCCESS;
 }
