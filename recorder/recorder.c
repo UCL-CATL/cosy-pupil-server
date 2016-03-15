@@ -15,12 +15,34 @@ struct _Data
 typedef struct _Recorder Recorder;
 struct _Recorder
 {
+	/* The zeromq context. */
+	void *context;
+
+	/* The subscriber to listen to the Pupil Broadcast Server. */
+	void *subscriber;
+
+	/* Contains a list of recorded Data*. */
 	GQueue *data_queue;
 };
 
 static void
 recorder_init (Recorder *recorder)
 {
+	const char *filter;
+	int ok;
+
+	recorder->context = zmq_ctx_new ();
+	recorder->subscriber = zmq_socket (recorder->context, ZMQ_SUB);
+	ok = zmq_connect (recorder->subscriber, "tcp://localhost:5000");
+	g_assert (ok == 0);
+
+	filter = "pupil_positions";
+	ok = zmq_setsockopt (recorder->subscriber,
+			     ZMQ_SUBSCRIBE,
+			     filter,
+			     strlen (filter));
+	g_assert (ok == 0);
+
 	recorder->data_queue = g_queue_new ();
 }
 
@@ -28,6 +50,13 @@ static void
 recorder_finalize (Recorder *recorder)
 {
 	g_queue_free_full (recorder->data_queue, g_free);
+	recorder->data_queue = NULL;
+
+	zmq_close (recorder->subscriber);
+	recorder->subscriber = NULL;
+
+	zmq_ctx_destroy (recorder->context);
+	recorder->context = NULL;
 }
 
 static Data *
@@ -79,9 +108,9 @@ receive_next_part (void *socket)
  * Either way, you need to free *topic and *json_data when no longer needed.
  */
 static gboolean
-receive_pupil_message (void  *socket,
-		       char **topic,
-		       char **json_data)
+receive_pupil_message (Recorder  *recorder,
+		       char     **topic,
+		       char     **json_data)
 {
 	int64_t more;
 	size_t more_size = sizeof (more);
@@ -90,22 +119,22 @@ receive_pupil_message (void  *socket,
 	g_return_val_if_fail (topic != NULL && *topic == NULL, FALSE);
 	g_return_val_if_fail (json_data != NULL && *json_data == NULL, FALSE);
 
-	*topic = receive_next_part (socket);
+	*topic = receive_next_part (recorder->subscriber);
 
 	/* Determine if more message parts are to follow. */
-	ok = zmq_getsockopt (socket, ZMQ_RCVMORE, &more, &more_size);
+	ok = zmq_getsockopt (recorder->subscriber, ZMQ_RCVMORE, &more, &more_size);
 	g_return_val_if_fail (ok == 0, FALSE);
 	if (!more)
 	{
 		return FALSE;
 	}
 
-	*json_data = receive_next_part (socket);
+	*json_data = receive_next_part (recorder->subscriber);
 
 	/* Determine if more message parts are to follow.
 	 * There must be exactly two parts. If there are more, it's an error.
 	 */
-	ok = zmq_getsockopt (socket, ZMQ_RCVMORE, &more, &more_size);
+	ok = zmq_getsockopt (recorder->subscriber, ZMQ_RCVMORE, &more, &more_size);
 	g_return_val_if_fail (ok == 0, FALSE);
 	if (more)
 	{
@@ -163,8 +192,8 @@ array_foreach_cb (JsonArray *array,
  * Returns TRUE if successful.
  */
 static gboolean
-parse_json_data (const char *json_data,
-		 Recorder   *recorder)
+parse_json_data (Recorder   *recorder,
+		 const char *json_data)
 {
 	JsonParser *parser;
 	JsonNode *root_node;
@@ -202,22 +231,6 @@ int
 main (void)
 {
 	Recorder recorder;
-	void *context;
-	void *subscriber;
-	char *filter;
-	int ok;
-
-	context = zmq_ctx_new ();
-	subscriber = zmq_socket (context, ZMQ_SUB);
-	ok = zmq_connect (subscriber, "tcp://localhost:5000");
-	g_assert (ok == 0);
-
-	filter = "pupil_positions";
-	ok = zmq_setsockopt (subscriber,
-			     ZMQ_SUBSCRIBE,
-			     filter,
-			     strlen (filter));
-	g_assert (ok == 0);
 
 	recorder_init (&recorder);
 
@@ -226,7 +239,7 @@ main (void)
 		char *topic = NULL;
 		char *json_data = NULL;
 
-		if (!receive_pupil_message (subscriber, &topic, &json_data))
+		if (!receive_pupil_message (&recorder, &topic, &json_data))
 		{
 			g_error ("A Pupil message must be in two parts.");
 		}
@@ -234,7 +247,7 @@ main (void)
 		printf ("Topic: %s\n", topic);
 		printf ("JSON data: %s\n", json_data);
 
-		if (!parse_json_data (json_data, &recorder))
+		if (!parse_json_data (&recorder, json_data))
 		{
 			g_error ("Failed to parse the JSON data.");
 		}
@@ -244,8 +257,6 @@ main (void)
 	}
 
 	recorder_finalize (&recorder);
-	zmq_close (subscriber);
-	zmq_ctx_destroy (context);
 
 	return EXIT_SUCCESS;
 }
