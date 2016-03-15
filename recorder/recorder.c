@@ -77,7 +77,7 @@ data_new (void)
  * Free the return value with free() when no longer needed.
  */
 static char *
-receive_next_part (void *socket)
+receive_next_message (void *socket)
 {
 	zmq_msg_t msg;
 	int n_bytes;
@@ -121,7 +121,7 @@ receive_pupil_message (Recorder  *recorder,
 	g_return_val_if_fail (topic != NULL && *topic == NULL, FALSE);
 	g_return_val_if_fail (json_data != NULL && *json_data == NULL, FALSE);
 
-	*topic = receive_next_part (recorder->subscriber);
+	*topic = receive_next_message (recorder->subscriber);
 
 	/* Determine if more message parts are to follow. */
 	ok = zmq_getsockopt (recorder->subscriber, ZMQ_RCVMORE, &more, &more_size);
@@ -131,7 +131,7 @@ receive_pupil_message (Recorder  *recorder,
 		return FALSE;
 	}
 
-	*json_data = receive_next_part (recorder->subscriber);
+	*json_data = receive_next_message (recorder->subscriber);
 
 	/* Determine if more message parts are to follow.
 	 * There must be exactly two parts. If there are more, it's an error.
