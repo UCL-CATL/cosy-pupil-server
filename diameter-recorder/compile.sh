@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-gcc -W -Wall -o diameter-recorder -O2 $(pkg-config --cflags --libs glib-2.0 libczmq) diameter-recorder.c
+gcc -W -Wall -o diameter-recorder -O2 $(pkg-config --cflags --libs libczmq glib-2.0 json-glib-1.0) diameter-recorder.c
