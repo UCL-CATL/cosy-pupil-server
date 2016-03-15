@@ -6,6 +6,7 @@
 #include <zmq.h>
 
 #define PUPIL_SERVER_ADDRESS "tcp://localhost:5000"
+#define REPLIER_ENDPOINT "tcp://*:6000"
 
 typedef struct _Data Data;
 struct _Data
@@ -22,6 +23,12 @@ struct _Recorder
 
 	/* The subscriber to listen to the Pupil Broadcast Server. */
 	void *subscriber;
+
+	/* The replier, to listen and reply to some requests coming from another
+	 * program than the Pupil (in our case, a Matlab script running on
+	 * another computer).
+	 */
+	void *replier;
 
 	/* Contains a list of recorded Data*. */
 	GQueue *data_queue;
@@ -45,6 +52,10 @@ recorder_init (Recorder *recorder)
 			     strlen (filter));
 	g_assert (ok == 0);
 
+	recorder->replier = zmq_socket (recorder->context, ZMQ_REP);
+	ok = zmq_bind (recorder->replier, REPLIER_ENDPOINT);
+	g_assert (ok == 0);
+
 	recorder->data_queue = g_queue_new ();
 }
 
@@ -53,6 +64,9 @@ recorder_finalize (Recorder *recorder)
 {
 	g_queue_free_full (recorder->data_queue, g_free);
 	recorder->data_queue = NULL;
+
+	zmq_close (recorder->replier);
+	recorder->replier = NULL;
 
 	zmq_close (recorder->subscriber);
 	recorder->subscriber = NULL;
