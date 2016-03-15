@@ -40,6 +40,15 @@ recorder_init (Recorder *recorder)
 	const char *filter;
 	int ok;
 
+	/* We need to record at at least 10 Hz, so every 100 ms maximum. Setting
+	 * a timeout of 10 ms should be thus a good choice. It will alternate
+	 * between the subscriber and the replier every 10 ms (100 Hz).
+	 * Normally the Pupil Server sends messages at 30 Hz, so we have
+	 * normally the time to process all Pupil messages and change the
+	 * socket to see if there is a request.
+	 */
+	int timeout_ms = 10;
+
 	recorder->context = zmq_ctx_new ();
 	recorder->subscriber = zmq_socket (recorder->context, ZMQ_SUB);
 	ok = zmq_connect (recorder->subscriber, PUPIL_SERVER_ADDRESS);
@@ -52,8 +61,20 @@ recorder_init (Recorder *recorder)
 			     strlen (filter));
 	g_assert (ok == 0);
 
+	ok = zmq_setsockopt (recorder->subscriber,
+			     ZMQ_RCVTIMEO,
+			     &timeout_ms,
+			     sizeof (int));
+	g_assert (ok == 0);
+
 	recorder->replier = zmq_socket (recorder->context, ZMQ_REP);
 	ok = zmq_bind (recorder->replier, REPLIER_ENDPOINT);
+	g_assert (ok == 0);
+
+	ok = zmq_setsockopt (recorder->replier,
+			     ZMQ_RCVTIMEO,
+			     &timeout_ms,
+			     sizeof (int));
 	g_assert (ok == 0);
 
 	recorder->data_queue = g_queue_new ();
@@ -119,9 +140,9 @@ receive_next_message (void *socket)
 /* Receive a Pupil message from the Pupil Broadcast Server plugin.
  * It must be a multi-part message, with exactly two parts: the topic and the
  * JSON data.
- * If the number of parts is different than 2, FALSE is returned. If successful,
- * TRUE is returned.
- * Either way, you need to free *topic and *json_data when no longer needed.
+ * If successful, TRUE is returned.
+ * Regardless of the return value, you need to free *topic and *json_data when
+ * no longer needed.
  */
 static gboolean
 receive_pupil_message (Recorder  *recorder,
@@ -136,13 +157,18 @@ receive_pupil_message (Recorder  *recorder,
 	g_return_val_if_fail (json_data != NULL && *json_data == NULL, FALSE);
 
 	*topic = receive_next_message (recorder->subscriber);
+	if (*topic == NULL)
+	{
+		/* Timeout, no messages. */
+		return FALSE;
+	}
 
 	/* Determine if more message parts are to follow. */
 	ok = zmq_getsockopt (recorder->subscriber, ZMQ_RCVMORE, &more, &more_size);
 	g_return_val_if_fail (ok == 0, FALSE);
 	if (!more)
 	{
-		return FALSE;
+		g_error ("A Pupil message must be in two parts.");
 	}
 
 	*json_data = receive_next_message (recorder->subscriber);
@@ -154,7 +180,7 @@ receive_pupil_message (Recorder  *recorder,
 	g_return_val_if_fail (ok == 0, FALSE);
 	if (more)
 	{
-		return FALSE;
+		g_error ("A Pupil message must be in two parts.");
 	}
 
 	return TRUE;
@@ -251,17 +277,15 @@ read_all_pupil_messages (Recorder *recorder)
 		char *topic = NULL;
 		char *json_data = NULL;
 
-		if (!receive_pupil_message (recorder, &topic, &json_data))
+		if (receive_pupil_message (recorder, &topic, &json_data))
 		{
-			g_error ("A Pupil message must be in two parts.");
-		}
+			printf ("Topic: %s\n", topic);
+			printf ("JSON data: %s\n", json_data);
 
-		printf ("Topic: %s\n", topic);
-		printf ("JSON data: %s\n", json_data);
-
-		if (!parse_json_data (recorder, json_data))
-		{
-			g_error ("Failed to parse the JSON data.");
+			if (!parse_json_data (recorder, json_data))
+			{
+				g_error ("Failed to parse the JSON data.");
+			}
 		}
 
 		free (topic);
