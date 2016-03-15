@@ -243,19 +243,15 @@ parse_json_data (Recorder   *recorder,
 	return TRUE;
 }
 
-int
-main (void)
+static void
+read_all_pupil_messages (Recorder *recorder)
 {
-	Recorder recorder;
-
-	recorder_init (&recorder);
-
 	while (TRUE)
 	{
 		char *topic = NULL;
 		char *json_data = NULL;
 
-		if (!receive_pupil_message (&recorder, &topic, &json_data))
+		if (!receive_pupil_message (recorder, &topic, &json_data))
 		{
 			g_error ("A Pupil message must be in two parts.");
 		}
@@ -263,7 +259,7 @@ main (void)
 		printf ("Topic: %s\n", topic);
 		printf ("JSON data: %s\n", json_data);
 
-		if (!parse_json_data (&recorder, json_data))
+		if (!parse_json_data (recorder, json_data))
 		{
 			g_error ("Failed to parse the JSON data.");
 		}
@@ -271,6 +267,16 @@ main (void)
 		free (topic);
 		free (json_data);
 	}
+}
+
+int
+main (void)
+{
+	Recorder recorder;
+
+	recorder_init (&recorder);
+
+	read_all_pupil_messages (&recorder);
 
 	recorder_finalize (&recorder);
 
