@@ -12,11 +12,23 @@ struct _Data
 	double timestamp;
 };
 
-typedef struct _DiameterRecorder DiameterRecorder;
-struct _DiameterRecorder
+typedef struct _Recorder Recorder;
+struct _Recorder
 {
 	GQueue *data_queue;
 };
+
+static void
+recorder_init (Recorder *recorder)
+{
+	recorder->data_queue = g_queue_new ();
+}
+
+static void
+recorder_finalize (Recorder *recorder)
+{
+	g_queue_free_full (recorder->data_queue, g_free);
+}
 
 static Data *
 data_new (void)
@@ -104,10 +116,10 @@ receive_pupil_message (void  *socket,
 }
 
 static void
-array_foreach_cb (JsonArray        *array,
-		  guint             index,
-		  JsonNode         *element_node,
-		  DiameterRecorder *recorder)
+array_foreach_cb (JsonArray *array,
+		  guint      index,
+		  JsonNode  *element_node,
+		  Recorder  *recorder)
 {
 	JsonObject *object;
 	double diameter_px = -1.0;
@@ -151,8 +163,8 @@ array_foreach_cb (JsonArray        *array,
  * Returns TRUE if successful.
  */
 static gboolean
-parse_json_data (const char       *json_data,
-		 DiameterRecorder *recorder)
+parse_json_data (const char *json_data,
+		 Recorder   *recorder)
 {
 	JsonParser *parser;
 	JsonNode *root_node;
@@ -189,7 +201,7 @@ parse_json_data (const char       *json_data,
 int
 main (void)
 {
-	DiameterRecorder recorder;
+	Recorder recorder;
 	void *context;
 	void *subscriber;
 	char *filter;
@@ -207,7 +219,7 @@ main (void)
 			     strlen (filter));
 	g_assert (ok == 0);
 
-	recorder.data_queue = g_queue_new ();
+	recorder_init (&recorder);
 
 	while (TRUE)
 	{
@@ -231,9 +243,9 @@ main (void)
 		free (json_data);
 	}
 
+	recorder_finalize (&recorder);
 	zmq_close (subscriber);
 	zmq_ctx_destroy (context);
-	g_queue_free_full (recorder.data_queue, g_free);
 
 	return EXIT_SUCCESS;
 }
