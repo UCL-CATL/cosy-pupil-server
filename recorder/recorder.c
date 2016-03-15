@@ -32,6 +32,8 @@ struct _Recorder
 
 	/* Contains a list of recorded Data*. */
 	GQueue *data_queue;
+
+	gboolean record;
 };
 
 static void
@@ -78,6 +80,7 @@ recorder_init (Recorder *recorder)
 	g_assert (ok == 0);
 
 	recorder->data_queue = g_queue_new ();
+	recorder->record = FALSE;
 }
 
 static void
@@ -272,24 +275,63 @@ parse_json_data (Recorder   *recorder,
 static void
 read_all_pupil_messages (Recorder *recorder)
 {
-	while (TRUE)
+	/* Continue */
+	gboolean cont = TRUE;
+
+	while (cont)
 	{
 		char *topic = NULL;
 		char *json_data = NULL;
 
-		if (receive_pupil_message (recorder, &topic, &json_data))
+		if (!receive_pupil_message (recorder, &topic, &json_data))
 		{
-			printf ("Topic: %s\n", topic);
-			printf ("JSON data: %s\n", json_data);
-
-			if (!parse_json_data (recorder, json_data))
-			{
-				g_error ("Failed to parse the JSON data.");
-			}
+			cont = FALSE;
+			goto end;
 		}
 
+		if (!recorder->record)
+		{
+			/* Flush the queue of messages, to not get them when the
+			 * recording starts.
+			 */
+			goto end;
+		}
+
+		if (!parse_json_data (recorder, json_data))
+		{
+			g_error ("Failed to parse the JSON data.");
+		}
+
+end:
 		free (topic);
 		free (json_data);
+	}
+}
+
+static void
+read_request (Recorder *recorder)
+{
+	char *request;
+
+	request = receive_next_message (recorder->replier);
+	if (request == NULL)
+	{
+		return;
+	}
+
+	if (g_str_equal (request, "start"))
+	{
+		printf ("start\n");
+		recorder->record = TRUE;
+	}
+	else if (g_str_equal (request, "stop"))
+	{
+		printf ("stop\n");
+		recorder->record = FALSE;
+	}
+	else
+	{
+		printf ("Request unknown: %s\n", request);
 	}
 }
 
@@ -300,7 +342,11 @@ main (void)
 
 	recorder_init (&recorder);
 
-	read_all_pupil_messages (&recorder);
+	while (TRUE)
+	{
+		read_all_pupil_messages (&recorder);
+		read_request (&recorder);
+	}
 
 	recorder_finalize (&recorder);
 
