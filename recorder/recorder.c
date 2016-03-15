@@ -5,6 +5,8 @@
 #include <string.h>
 #include <zmq.h>
 
+#define PUPIL_SERVER_ADDRESS "tcp://localhost:5000"
+
 typedef struct _Data Data;
 struct _Data
 {
@@ -33,7 +35,7 @@ recorder_init (Recorder *recorder)
 
 	recorder->context = zmq_ctx_new ();
 	recorder->subscriber = zmq_socket (recorder->context, ZMQ_SUB);
-	ok = zmq_connect (recorder->subscriber, "tcp://localhost:5000");
+	ok = zmq_connect (recorder->subscriber, PUPIL_SERVER_ADDRESS);
 	g_assert (ok == 0);
 
 	filter = "pupil_positions";
