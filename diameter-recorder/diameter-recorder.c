@@ -5,6 +5,31 @@
 #include <string.h>
 #include <zmq.h>
 
+typedef struct _Data Data;
+struct _Data
+{
+	double diameter_px;
+	double timestamp;
+};
+
+typedef struct _DiameterRecorder DiameterRecorder;
+struct _DiameterRecorder
+{
+	GQueue *data_queue;
+};
+
+static Data *
+data_new (void)
+{
+	Data *data;
+
+	data = g_new (Data, 1);
+	data->diameter_px = -1.0;
+	data->timestamp = -1.0;
+
+	return data;
+}
+
 /* Receives the next zmq message part as a string.
  * Free the return value with free() when no longer needed.
  */
@@ -78,29 +103,61 @@ receive_pupil_message (void  *socket,
 	return TRUE;
 }
 
+static void
+array_foreach_cb (JsonArray        *array,
+		  guint             index,
+		  JsonNode         *element_node,
+		  DiameterRecorder *recorder)
+{
+	JsonObject *object;
+	double diameter_px = -1.0;
+	double timestamp = -1.0;
+	gboolean found = FALSE;
+
+	if (json_node_get_node_type (element_node) != JSON_NODE_OBJECT)
+	{
+		g_error ("Error: expected an object inside the JSON array");
+		return;
+	}
+
+	object = json_node_get_object (element_node);
+
+	if (json_object_has_member (object, "diameter"))
+	{
+		diameter_px = json_object_get_double_member (object, "diameter");
+		found = TRUE;
+	}
+	if (json_object_has_member (object, "timestamp"))
+	{
+		timestamp = json_object_get_double_member (object, "timestamp");
+		found = TRUE;
+	}
+
+	if (found)
+	{
+		Data *data = data_new ();
+		data->diameter_px = diameter_px;
+		data->timestamp = timestamp;
+
+		g_queue_push_tail (recorder->data_queue, data);
+
+		printf ("diameter: %lf\n", diameter_px);
+		printf ("timestamp: %lf\n", timestamp);
+	}
+}
+
 /* Parses the JSON data to extract the diameter of the pupil (in pixels), and
  * the timestamp.
  * Returns TRUE if successful.
- * The value -1.0 is set to *diameter_px and *timestamp if the value doesn't
- * exist in the JSON data.
  */
 static gboolean
-parse_json_data (const char *json_data,
-		 double     *diameter_px,
-		 double     *timestamp)
+parse_json_data (const char       *json_data,
+		 DiameterRecorder *recorder)
 {
 	JsonParser *parser;
 	JsonNode *root_node;
 	JsonArray *array;
-	JsonNode *element_node;
-	JsonObject *object;
 	GError *error = NULL;
-
-	g_assert (diameter_px != NULL);
-	g_assert (timestamp != NULL);
-
-	*diameter_px = -1.0;
-	*timestamp = -1.0;
 
 	parser = json_parser_new ();
 	json_parser_load_from_data (parser, json_data, -1, &error);
@@ -120,29 +177,9 @@ parse_json_data (const char *json_data,
 	}
 
 	array = json_node_get_array (root_node);
-	if (json_array_get_length (array) != 1)
-	{
-		g_warning ("Error: JSON array must have only one element");
-		return FALSE;
-	}
-
-	element_node = json_array_get_element (array, 0);
-	if (json_node_get_node_type (element_node) != JSON_NODE_OBJECT)
-	{
-		g_warning ("Error: expected an object inside the array");
-		return FALSE;
-	}
-
-	object = json_node_get_object (element_node);
-
-	if (json_object_has_member (object, "diameter"))
-	{
-		*diameter_px = json_object_get_double_member (object, "diameter");
-	}
-	if (json_object_has_member (object, "timestamp"))
-	{
-		*timestamp = json_object_get_double_member (object, "timestamp");
-	}
+	json_array_foreach_element (array,
+				    (JsonArrayForeach) array_foreach_cb,
+				    recorder);
 
 	g_object_unref (parser);
 
@@ -152,6 +189,7 @@ parse_json_data (const char *json_data,
 int
 main (void)
 {
+	DiameterRecorder recorder;
 	void *context;
 	void *subscriber;
 	char *filter;
@@ -169,28 +207,25 @@ main (void)
 			     strlen (filter));
 	g_assert (ok == 0);
 
+	recorder.data_queue = g_queue_new ();
+
 	while (TRUE)
 	{
 		char *topic = NULL;
 		char *json_data = NULL;
-		double diameter_px;
-		double timestamp;
 
 		if (!receive_pupil_message (subscriber, &topic, &json_data))
 		{
 			g_error ("A Pupil message must be in two parts.");
 		}
 
-		if (!parse_json_data (json_data, &diameter_px, &timestamp))
+		printf ("Topic: %s\n", topic);
+		printf ("JSON data: %s\n", json_data);
+
+		if (!parse_json_data (json_data, &recorder))
 		{
 			g_error ("Failed to parse the JSON data.");
 		}
-
-		printf ("Topic: %s\n", topic);
-		printf ("JSON data: %s\n", json_data);
-		printf ("diameter: %lf\n", diameter_px);
-		printf ("timestamp: %lf\n", timestamp);
-		printf ("\n");
 
 		free (topic);
 		free (json_data);
@@ -198,6 +233,7 @@ main (void)
 
 	zmq_close (subscriber);
 	zmq_ctx_destroy (context);
+	g_queue_free_full (recorder.data_queue, g_free);
 
 	return EXIT_SUCCESS;
 }
