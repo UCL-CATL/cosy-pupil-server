@@ -112,7 +112,7 @@ data_new (void)
 }
 
 /* Receives the next zmq message part as a string.
- * Free the return value with free() when no longer needed.
+ * Free the return value with g_free() when no longer needed.
  */
 static char *
 receive_next_message (void *socket)
@@ -131,7 +131,7 @@ receive_next_message (void *socket)
 		void *raw_data;
 
 		raw_data = zmq_msg_data (&msg);
-		str = strndup ((char *) raw_data, n_bytes);
+		str = g_strndup ((char *) raw_data, n_bytes);
 	}
 
 	ok = zmq_msg_close (&msg);
@@ -303,8 +303,8 @@ read_all_pupil_messages (Recorder *recorder)
 		}
 
 end:
-		free (topic);
-		free (json_data);
+		g_free (topic);
+		g_free (json_data);
 	}
 }
 
@@ -343,7 +343,7 @@ read_request (Recorder *recorder)
 		  strlen (reply),
 		  0);
 
-	free (request);
+	g_free (request);
 }
 
 int
