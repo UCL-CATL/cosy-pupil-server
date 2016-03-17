@@ -353,6 +353,33 @@ recorder_stop (Recorder *recorder)
 	return reply;
 }
 
+static char *
+receive_data (Recorder *recorder)
+{
+	GString *str;
+	GList *l;
+
+	if (g_queue_is_empty (recorder->data_queue))
+	{
+		return g_strdup ("no data");
+	}
+
+	str = g_string_new (NULL);
+
+	for (l = recorder->data_queue->head; l != NULL; l = l->next)
+	{
+		Data *data = l->data;
+
+		g_string_append_printf (str,
+					"diameter_px:%lf\n"
+					"timestamp:%lf\n",
+					data->diameter_px,
+					data->timestamp);
+	}
+
+	return g_string_free (str, FALSE);
+}
+
 static void
 read_request (Recorder *recorder)
 {
@@ -372,6 +399,23 @@ read_request (Recorder *recorder)
 	else if (g_str_equal (request, "stop"))
 	{
 		reply = recorder_stop (recorder);
+	}
+	else if (g_str_equal (request, "receive_data"))
+	{
+		/* It's fine to send big messages with ZeroMQ. In our case, if
+		 * the recording lasts 2 minutes, the data should be below 1MB.
+		 * ZeroMQ supports data blobs from zero to gigabytes large (as
+		 * soon as there is enough RAM on both sides). So 1MB should be
+		 * fingers in the nose.
+		 */
+		reply = receive_data (recorder);
+
+		/* TODO save the data also to a local file, in case the
+		 * connection between the client and server is lost.
+		 */
+
+		g_queue_free_full (recorder->data_queue, g_free);
+		recorder->data_queue = g_queue_new ();
 	}
 	else
 	{
