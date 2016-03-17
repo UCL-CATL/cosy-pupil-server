@@ -33,6 +33,8 @@ struct _Recorder
 	/* Contains a list of recorded Data*. */
 	GQueue *data_queue;
 
+	GTimer *timer;
+
 	guint record : 1;
 };
 
@@ -80,23 +82,30 @@ recorder_init (Recorder *recorder)
 	g_assert (ok == 0);
 
 	recorder->data_queue = g_queue_new ();
+	recorder->timer = NULL;
 	recorder->record = FALSE;
 }
 
 static void
 recorder_finalize (Recorder *recorder)
 {
-	g_queue_free_full (recorder->data_queue, g_free);
-	recorder->data_queue = NULL;
+	zmq_close (recorder->subscriber);
+	recorder->subscriber = NULL;
 
 	zmq_close (recorder->replier);
 	recorder->replier = NULL;
 
-	zmq_close (recorder->subscriber);
-	recorder->subscriber = NULL;
-
 	zmq_ctx_destroy (recorder->context);
 	recorder->context = NULL;
+
+	g_queue_free_full (recorder->data_queue, g_free);
+	recorder->data_queue = NULL;
+
+	if (recorder->timer != NULL)
+	{
+		g_timer_destroy (recorder->timer);
+		recorder->timer = NULL;
+	}
 }
 
 static Data *
@@ -317,6 +326,15 @@ recorder_start (Recorder *recorder)
 	recorder->record = TRUE;
 	reply = g_strdup ("ack");
 
+	if (recorder->timer == NULL)
+	{
+		recorder->timer = g_timer_new ();
+	}
+	else
+	{
+		g_timer_start (recorder->timer);
+	}
+
 	return reply;
 }
 
@@ -325,9 +343,12 @@ recorder_stop (Recorder *recorder)
 {
 	char *reply;
 
+	g_assert (recorder->timer != NULL);
+	g_timer_stop (recorder->timer);
+
 	printf ("stop\n");
 	recorder->record = FALSE;
-	reply = g_strdup ("ack");
+	reply = g_strdup_printf ("%lf", g_timer_elapsed (recorder->timer, NULL));
 
 	return reply;
 }
