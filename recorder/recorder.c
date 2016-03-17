@@ -308,11 +308,35 @@ end:
 	}
 }
 
+static char *
+recorder_start (Recorder *recorder)
+{
+	char *reply;
+
+	printf ("start\n");
+	recorder->record = TRUE;
+	reply = g_strdup ("ack");
+
+	return reply;
+}
+
+static char *
+recorder_stop (Recorder *recorder)
+{
+	char *reply;
+
+	printf ("stop\n");
+	recorder->record = FALSE;
+	reply = g_strdup ("ack");
+
+	return reply;
+}
+
 static void
 read_request (Recorder *recorder)
 {
 	char *request;
-	const char *reply;
+	char *reply = NULL;
 
 	request = receive_next_message (recorder->replier);
 	if (request == NULL)
@@ -322,20 +346,16 @@ read_request (Recorder *recorder)
 
 	if (g_str_equal (request, "start"))
 	{
-		printf ("start\n");
-		recorder->record = TRUE;
-		reply = "ack";
+		reply = recorder_start (recorder);
 	}
 	else if (g_str_equal (request, "stop"))
 	{
-		printf ("stop\n");
-		recorder->record = FALSE;
-		reply = "ack";
+		reply = recorder_stop (recorder);
 	}
 	else
 	{
-		printf ("Request unknown: %s\n", request);
-		reply = "request unknown";
+		printf ("Unknown request: %s\n", request);
+		reply = g_strdup ("unknown request");
 	}
 
 	zmq_send (recorder->replier,
@@ -344,6 +364,7 @@ read_request (Recorder *recorder)
 		  0);
 
 	g_free (request);
+	g_free (reply);
 }
 
 int
