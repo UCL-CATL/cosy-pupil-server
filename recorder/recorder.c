@@ -33,7 +33,7 @@ struct _Recorder
 	/* Contains a list of recorded Data*. */
 	GQueue *data_queue;
 
-	gboolean record;
+	guint record : 1;
 };
 
 static void
