@@ -312,6 +312,7 @@ static void
 read_request (Recorder *recorder)
 {
 	char *request;
+	const char *reply;
 
 	request = receive_next_message (recorder->replier);
 	if (request == NULL)
@@ -323,16 +324,26 @@ read_request (Recorder *recorder)
 	{
 		printf ("start\n");
 		recorder->record = TRUE;
+		reply = "ack";
 	}
 	else if (g_str_equal (request, "stop"))
 	{
 		printf ("stop\n");
 		recorder->record = FALSE;
+		reply = "ack";
 	}
 	else
 	{
 		printf ("Request unknown: %s\n", request);
+		reply = "request unknown";
 	}
+
+	zmq_send (recorder->replier,
+		  reply,
+		  strlen (reply),
+		  0);
+
+	free (request);
 }
 
 int
