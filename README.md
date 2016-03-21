@@ -9,19 +9,19 @@ Université Catholique de Louvain, Belgium.
 This repository contains the “server” part. It runs on the same computer as the
 Pupil software. See the cosy-pupil-client repository for the client part.
 
-Recorder
---------
+external-recorder
+-----------------
 
-It's an external recorder. The Pupil software is not modified, and it is not a
-plugin. So normally it will be easily re-usable for future versions of the
-Pupil.
+It records some Pupil capture data, but externally to the Pupil software. The
+Pupil software is not modified, and it is not a plugin. So normally it will be
+easily re-usable for future versions of the Pupil.
 
 The Pupil Server plugin needs to be enabled. It publishes a stream of
 information with ZeroMQ, with the Publisher-Subscriber communication pattern.
 The external recorder creates a subscriber and reads the messages.
 
-Additionally, the recorder uses the Request-Reply pattern. It listens for the
-following requests:
+Additionally, the external recorder uses the Request-Reply ZeroMQ pattern. It
+listens for the following requests:
 - `start`: start recording. The reply should be "ack".
 - `stop`: stop recording. The reply should be the number of seconds elapsed
   since the `start` signal, as a floating point number (encoded as a string).
