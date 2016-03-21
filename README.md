@@ -30,3 +30,21 @@ listens for the following requests:
 
 The requests are sent by another process. In our case on another computer
 running a real-time Matlab program (see cosy-pupil-client).
+
+For the `stop` request, the reply is useful to know the latency:
+1. Matlab starts a timer.
+2. Matlab sends the `start` request.
+3. The external-recorder receives the `start` request and starts its own timer
+   and sends the reply.
+4. Matlab sends the `stop` request.
+5. The external-recorder receives the `stop` request, stops its timer and sends
+   the reply containing its time elapsed.
+6. Matlab receives the reply and store it in `elapsed_time_pupil`.
+7. Matlab stops its timer and store its elapsed time in `elapsed_time_matlab`.
+8. Then Matlab can measure the latency by comparing `elapsed_time_pupil` and
+   `elapsed_time_matlab`.
+
+It's important to do that, to be sure that we have recorded what we wanted,
+i.e. during the experiment. If the latency is too high, we miss some data. Of
+course this timer dance can be done a first time before the actual experiment,
+so if the latency is too high we know it directly.
