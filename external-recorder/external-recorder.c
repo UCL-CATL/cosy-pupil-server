@@ -48,14 +48,14 @@ recorder_init (Recorder *recorder)
 	recorder->context = zmq_ctx_new ();
 	recorder->subscriber = zmq_socket (recorder->context, ZMQ_SUB);
 	ok = zmq_connect (recorder->subscriber, PUPIL_SERVER_ADDRESS);
-	g_assert (ok == 0);
+	g_assert_cmpint (ok, ==, 0);
 
 	filter = "pupil_positions";
 	ok = zmq_setsockopt (recorder->subscriber,
 			     ZMQ_SUBSCRIBE,
 			     filter,
 			     strlen (filter));
-	g_assert (ok == 0);
+	g_assert_cmpint (ok, ==, 0);
 
 	/* Don't block the subscriber, to prioritize the replier, to have the
 	 * minimum latency between the client and server.
@@ -65,11 +65,11 @@ recorder_init (Recorder *recorder)
 			     ZMQ_RCVTIMEO,
 			     &timeout_ms,
 			     sizeof (int));
-	g_assert (ok == 0);
+	g_assert_cmpint (ok, ==, 0);
 
 	recorder->replier = zmq_socket (recorder->context, ZMQ_REP);
 	ok = zmq_bind (recorder->replier, REPLIER_ENDPOINT);
-	g_assert (ok == 0);
+	g_assert_cmpint (ok, ==, 0);
 
 	/* We need to record at at least 10 Hz, so every 100 ms maximum. Setting
 	 * a timeout of 10 ms should be thus a good choice. It will alternate
@@ -83,7 +83,7 @@ recorder_init (Recorder *recorder)
 			     ZMQ_RCVTIMEO,
 			     &timeout_ms,
 			     sizeof (int));
-	g_assert (ok == 0);
+	g_assert_cmpint (ok, ==, 0);
 
 	recorder->data_queue = g_queue_new ();
 	recorder->timer = NULL;
@@ -144,11 +144,15 @@ receive_next_message (void *socket)
 		void *raw_data;
 
 		raw_data = zmq_msg_data (&msg);
-		str = g_strndup ((char *) raw_data, n_bytes);
+		str = g_strndup (raw_data, n_bytes);
 	}
 
 	ok = zmq_msg_close (&msg);
-	g_return_val_if_fail (ok == 0, NULL);
+	if (ok != 0)
+	{
+		g_free (str);
+		g_return_val_if_reached (NULL);
+	}
 
 	return str;
 }
@@ -184,7 +188,8 @@ receive_pupil_message (Recorder  *recorder,
 	g_return_val_if_fail (ok == 0, FALSE);
 	if (!more)
 	{
-		g_error ("A Pupil message must be in two parts.");
+		g_warning ("A Pupil message must be in two parts.");
+		return FALSE;
 	}
 
 	*json_data = receive_next_message (recorder->subscriber);
@@ -196,7 +201,8 @@ receive_pupil_message (Recorder  *recorder,
 	g_return_val_if_fail (ok == 0, FALSE);
 	if (more)
 	{
-		g_error ("A Pupil message must be in two parts.");
+		g_warning ("A Pupil message must be in two parts.");
+		return FALSE;
 	}
 
 	return TRUE;
@@ -215,7 +221,7 @@ array_foreach_cb (JsonArray *array,
 
 	if (json_node_get_node_type (element_node) != JSON_NODE_OBJECT)
 	{
-		g_error ("Error: expected an object inside the JSON array");
+		g_warning ("Expected an object inside the JSON array.");
 		return;
 	}
 
@@ -257,6 +263,7 @@ parse_json_data (Recorder   *recorder,
 	JsonNode *root_node;
 	JsonArray *array;
 	GError *error = NULL;
+	gboolean ok = TRUE;
 
 	parser = json_parser_new ();
 	json_parser_load_from_data (parser, json_data, -1, &error);
@@ -264,15 +271,19 @@ parse_json_data (Recorder   *recorder,
 	if (error != NULL)
 	{
 		g_warning ("Error when parsing JSON data: %s", error->message);
-		g_clear_error (&error);
-		return FALSE;
+		g_error_free (error);
+		error = NULL;
+
+		ok = FALSE;
+		goto out;
 	}
 
 	root_node = json_parser_get_root (parser);
 	if (json_node_get_node_type (root_node) != JSON_NODE_ARRAY)
 	{
 		g_warning ("Error: JSON root node must be an array");
-		return FALSE;
+		ok = FALSE;
+		goto out;
 	}
 
 	array = json_node_get_array (root_node);
@@ -280,9 +291,9 @@ parse_json_data (Recorder   *recorder,
 				    (JsonArrayForeach) array_foreach_cb,
 				    recorder);
 
+out:
 	g_object_unref (parser);
-
-	return TRUE;
+	return ok;
 }
 
 static void
@@ -312,7 +323,7 @@ read_all_pupil_messages (Recorder *recorder)
 
 		if (!parse_json_data (recorder, json_data))
 		{
-			g_error ("Failed to parse the JSON data.");
+			g_warning ("Failed to parse the JSON data.");
 		}
 
 end:
@@ -347,7 +358,12 @@ recorder_stop (Recorder *recorder)
 {
 	char *reply;
 
-	g_assert (recorder->timer != NULL);
+	if (recorder->timer == NULL)
+	{
+		reply = g_strdup ("no timer");
+		return reply;
+	}
+
 	g_timer_stop (recorder->timer);
 
 	printf ("stop\n");
