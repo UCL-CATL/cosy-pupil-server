@@ -42,16 +42,8 @@ static void
 recorder_init (Recorder *recorder)
 {
 	const char *filter;
+	int timeout_ms;
 	int ok;
-
-	/* We need to record at at least 10 Hz, so every 100 ms maximum. Setting
-	 * a timeout of 10 ms should be thus a good choice. It will alternate
-	 * between the subscriber and the replier every 10 ms (100 Hz).
-	 * Normally the Pupil Server sends messages at 30 Hz, so we have
-	 * normally the time to process all Pupil messages and change the
-	 * socket to see if there is a request.
-	 */
-	int timeout_ms = 10;
 
 	recorder->context = zmq_ctx_new ();
 	recorder->subscriber = zmq_socket (recorder->context, ZMQ_SUB);
@@ -65,6 +57,10 @@ recorder_init (Recorder *recorder)
 			     strlen (filter));
 	g_assert (ok == 0);
 
+	/* Don't block the subscriber, to prioritize the replier, to have the
+	 * minimum latency between the client and server.
+	 */
+	timeout_ms = 0;
 	ok = zmq_setsockopt (recorder->subscriber,
 			     ZMQ_RCVTIMEO,
 			     &timeout_ms,
@@ -75,6 +71,14 @@ recorder_init (Recorder *recorder)
 	ok = zmq_bind (recorder->replier, REPLIER_ENDPOINT);
 	g_assert (ok == 0);
 
+	/* We need to record at at least 10 Hz, so every 100 ms maximum. Setting
+	 * a timeout of 10 ms should be thus a good choice. It will alternate
+	 * between the subscriber and the replier every 10 ms (100 Hz).
+	 * Normally the Pupil Server sends messages at 30 Hz, so we have
+	 * normally the time to process all Pupil messages and change the
+	 * socket to see if there is a request.
+	 */
+	timeout_ms = 10;
 	ok = zmq_setsockopt (recorder->replier,
 			     ZMQ_RCVTIMEO,
 			     &timeout_ms,
