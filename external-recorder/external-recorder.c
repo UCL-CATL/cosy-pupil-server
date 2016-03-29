@@ -11,8 +11,9 @@
 typedef struct _Data Data;
 struct _Data
 {
-	double diameter_px;
 	double timestamp;
+	double diameter_px;
+	double confidence;
 };
 
 typedef struct _Recorder Recorder;
@@ -118,8 +119,9 @@ data_new (void)
 	Data *data;
 
 	data = g_new (Data, 1);
-	data->diameter_px = -1.0;
 	data->timestamp = -1.0;
+	data->diameter_px = -1.0;
+	data->confidence = -1.0;
 
 	return data;
 }
@@ -215,8 +217,9 @@ array_foreach_cb (JsonArray *array,
 		  Recorder  *recorder)
 {
 	JsonObject *object;
-	double diameter_px = -1.0;
 	double timestamp = -1.0;
+	double diameter_px = -1.0;
+	double confidence = -1.0;
 	gboolean found = FALSE;
 
 	if (json_node_get_node_type (element_node) != JSON_NODE_OBJECT)
@@ -227,27 +230,34 @@ array_foreach_cb (JsonArray *array,
 
 	object = json_node_get_object (element_node);
 
+	if (json_object_has_member (object, "timestamp"))
+	{
+		timestamp = json_object_get_double_member (object, "timestamp");
+		found = TRUE;
+	}
 	if (json_object_has_member (object, "diameter"))
 	{
 		diameter_px = json_object_get_double_member (object, "diameter");
 		found = TRUE;
 	}
-	if (json_object_has_member (object, "timestamp"))
+	if (json_object_has_member (object, "confidence"))
 	{
-		timestamp = json_object_get_double_member (object, "timestamp");
+		confidence = json_object_get_double_member (object, "confidence");
 		found = TRUE;
 	}
 
 	if (found)
 	{
 		Data *data = data_new ();
-		data->diameter_px = diameter_px;
 		data->timestamp = timestamp;
+		data->diameter_px = diameter_px;
+		data->confidence = confidence;
 
 		g_queue_push_tail (recorder->data_queue, data);
 
-		printf ("diameter: %lf\n", diameter_px);
 		printf ("timestamp: %lf\n", timestamp);
+		printf ("diameter: %lf\n", diameter_px);
+		printf ("confidence: %lf\n", confidence);
 	}
 }
 
@@ -391,10 +401,12 @@ receive_data (Recorder *recorder)
 		Data *data = l->data;
 
 		g_string_append_printf (str,
+					"timestamp:%lf\n"
 					"diameter_px:%lf\n"
-					"timestamp:%lf\n",
+					"confidence:%lf\n",
+					data->timestamp,
 					data->diameter_px,
-					data->timestamp);
+					data->confidence);
 	}
 
 	return g_string_free (str, FALSE);
