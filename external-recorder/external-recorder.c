@@ -14,8 +14,11 @@ typedef struct _Data Data;
 struct _Data
 {
 	double timestamp;
-	double diameter_px;
-	double confidence;
+	double gaze_confidence;
+	double gaze_norm_pos_x;
+	double gaze_norm_pos_y;
+	double pupil_confidence;
+	double pupil_diameter_px;
 };
 
 typedef struct _Recorder Recorder;
@@ -60,7 +63,7 @@ recorder_init (Recorder *recorder)
 	}
 	else
 	{
-		filter = "pupil_positions";
+		filter = "gaze_positions";
 	}
 
 	ok = zmq_setsockopt (recorder->subscriber,
@@ -127,14 +130,7 @@ recorder_finalize (Recorder *recorder)
 static Data *
 data_new (void)
 {
-	Data *data;
-
-	data = g_new (Data, 1);
-	data->timestamp = -1.0;
-	data->diameter_px = -1.0;
-	data->confidence = -1.0;
-
-	return data;
+	return g_new0 (Data, 1);
 }
 
 /* Receives the next zmq message part as a string.
@@ -221,6 +217,65 @@ receive_pupil_message (Recorder  *recorder,
 	return TRUE;
 }
 
+/* The 'base' node contains the pupil_positions, i.e. the data from the eye
+ * camera.
+ */
+static gboolean
+parse_base_node (JsonNode *base_node,
+		 double   *pupil_confidence,
+		 double   *pupil_diameter_px)
+{
+	JsonArray *base_array;
+	guint array_length;
+	gboolean found = FALSE;
+
+	g_assert (pupil_confidence != NULL);
+	g_assert (pupil_diameter_px != NULL);
+
+	if (json_node_get_node_type (base_node) != JSON_NODE_ARRAY)
+	{
+		g_warning ("Expected a JSON array for the 'base' object member.");
+		return FALSE;
+	}
+
+	base_array = json_node_get_array (base_node);
+	array_length = json_array_get_length (base_array);
+
+	if (array_length >= 1)
+	{
+		JsonNode *array_element = json_array_get_element (base_array, 0);
+
+		if (json_node_get_node_type (array_element) == JSON_NODE_OBJECT)
+		{
+			JsonObject *base_object = json_node_get_object (array_element);
+
+			if (json_object_has_member (base_object, "confidence"))
+			{
+				*pupil_confidence = json_object_get_double_member (base_object, "confidence");
+				found = TRUE;
+			}
+
+			if (json_object_has_member (base_object, "diameter"))
+			{
+				*pupil_diameter_px = json_object_get_double_member (base_object, "diameter");
+				found = TRUE;
+			}
+		}
+		else
+		{
+			g_warning ("Expected an object inside the 'base' JSON array.");
+		}
+	}
+
+	if (array_length > 1)
+	{
+		g_warning ("Expected only one element in the 'base' JSON array. "
+			   "Got %u elements. Only the first element has been read.", array_length);
+	}
+
+	return found;
+}
+
 static void
 array_foreach_cb (JsonArray *array,
 		  guint      index,
@@ -229,8 +284,11 @@ array_foreach_cb (JsonArray *array,
 {
 	JsonObject *object;
 	double timestamp = -1.0;
-	double diameter_px = -1.0;
-	double confidence = -1.0;
+	double gaze_confidence = -1.0;
+	double gaze_norm_pos_x = -1.0;
+	double gaze_norm_pos_y = -1.0;
+	double pupil_confidence = -1.0;
+	double pupil_diameter_px = -1.0;
 	gboolean found = FALSE;
 
 	if (json_node_get_node_type (element_node) != JSON_NODE_OBJECT)
@@ -246,34 +304,67 @@ array_foreach_cb (JsonArray *array,
 		timestamp = json_object_get_double_member (object, "timestamp");
 		found = TRUE;
 	}
-	if (json_object_has_member (object, "diameter"))
-	{
-		diameter_px = json_object_get_double_member (object, "diameter");
-		found = TRUE;
-	}
+
 	if (json_object_has_member (object, "confidence"))
 	{
-		confidence = json_object_get_double_member (object, "confidence");
+		gaze_confidence = json_object_get_double_member (object, "confidence");
 		found = TRUE;
+	}
+
+	if (json_object_has_member (object, "norm_pos"))
+	{
+		JsonNode *norm_pos_node = json_object_get_member (object, "norm_pos");
+
+		if (json_node_get_node_type (norm_pos_node) == JSON_NODE_ARRAY)
+		{
+			JsonArray *norm_pos_array = json_node_get_array (norm_pos_node);
+			guint array_length = json_array_get_length (norm_pos_array);
+
+			if (array_length == 2)
+			{
+				gaze_norm_pos_x = json_array_get_double_element (norm_pos_array, 0);
+				gaze_norm_pos_y = json_array_get_double_element (norm_pos_array, 1);
+				found = TRUE;
+			}
+			else if (array_length != 0)
+			{
+				g_warning ("Expected zero or two elements inside the norm_pos JSON array. Got %u elements.", array_length);
+			}
+		}
+		else
+		{
+			g_warning ("Expected a JSON array inside norm_pos.");
+		}
+	}
+
+	if (json_object_has_member (object, "base"))
+	{
+		JsonNode *base_node = json_object_get_member (object, "base");
+
+		if (parse_base_node (base_node, &pupil_confidence, &pupil_diameter_px))
+		{
+			found = TRUE;
+		}
 	}
 
 	if (found)
 	{
 		Data *data = data_new ();
+
 		data->timestamp = timestamp;
-		data->diameter_px = diameter_px;
-		data->confidence = confidence;
+		data->gaze_confidence = gaze_confidence;
+		data->gaze_norm_pos_x = gaze_norm_pos_x;
+		data->gaze_norm_pos_y = gaze_norm_pos_y;
+		data->pupil_confidence = pupil_confidence;
+		data->pupil_diameter_px = pupil_diameter_px;
+
+		g_print ("diameter: %lf\n", pupil_diameter_px);
 
 		g_queue_push_tail (recorder->data_queue, data);
-
-		printf ("timestamp: %lf\n", timestamp);
-		printf ("diameter: %lf\n", diameter_px);
-		printf ("confidence: %lf\n", confidence);
 	}
 }
 
-/* Parses the JSON data to extract the diameter of the pupil (in pixels), and
- * the timestamp.
+/* Parses the JSON data to extract the desired data.
  * Returns TRUE if successful.
  */
 static gboolean
@@ -418,11 +509,17 @@ receive_data (Recorder *recorder)
 
 		g_string_append_printf (str,
 					"timestamp:%lf\n"
-					"diameter_px:%lf\n"
-					"confidence:%lf\n",
+					"gaze_confidence:%lf\n"
+					"gaze_norm_pos_x:%lf\n"
+					"gaze_norm_pos_y:%lf\n"
+					"pupil_confidence:%lf\n"
+					"pupil_diameter_px:%lf\n",
 					data->timestamp,
-					data->diameter_px,
-					data->confidence);
+					data->gaze_confidence,
+					data->gaze_norm_pos_x,
+					data->gaze_norm_pos_y,
+					data->pupil_confidence,
+					data->pupil_diameter_px);
 	}
 
 	return g_string_free (str, FALSE);
@@ -457,10 +554,6 @@ read_request (Recorder *recorder)
 		 * fingers in the nose.
 		 */
 		reply = receive_data (recorder);
-
-		/* TODO save the data also to a local file, in case the
-		 * connection between the client and server is lost.
-		 */
 
 		g_queue_free_full (recorder->data_queue, g_free);
 		recorder->data_queue = g_queue_new ();
