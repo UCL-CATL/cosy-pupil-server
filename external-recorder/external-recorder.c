@@ -8,6 +8,8 @@
 #define PUPIL_SERVER_ADDRESS "tcp://localhost:5000"
 #define REPLIER_ENDPOINT "tcp://*:6000"
 
+#define DEBUG FALSE
+
 typedef struct _Data Data;
 struct _Data
 {
@@ -51,7 +53,16 @@ recorder_init (Recorder *recorder)
 	ok = zmq_connect (recorder->subscriber, PUPIL_SERVER_ADDRESS);
 	g_assert_cmpint (ok, ==, 0);
 
-	filter = "pupil_positions";
+	if (DEBUG)
+	{
+		/* Receive all messages. */
+		filter = "";
+	}
+	else
+	{
+		filter = "pupil_positions";
+	}
+
 	ok = zmq_setsockopt (recorder->subscriber,
 			     ZMQ_SUBSCRIBE,
 			     filter,
@@ -321,6 +332,11 @@ read_all_pupil_messages (Recorder *recorder)
 		{
 			cont = FALSE;
 			goto end;
+		}
+
+		if (DEBUG)
+		{
+			g_print ("%s: %s\n", topic, json_data);
 		}
 
 		if (!recorder->record)
