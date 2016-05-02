@@ -12,6 +12,23 @@ repository for the client part.
 
 cosy-pupil-server is licensed under the GNU General Public License version 3 or later.
 
+Dependencies
+------------
+
+- [ZeroMQ](http://zeromq.org/)
+- [GLib](https://wiki.gnome.org/Projects/GLib)
+- [JSON-GLib](https://wiki.gnome.org/Projects/JsonGlib)
+
+Build
+-----
+
+On Linux:
+
+```
+$ cd external-recorder/
+$ make
+```
+
 external-recorder
 -----------------
 
@@ -20,9 +37,8 @@ Pupil software is not modified, and it is not a plugin. So normally it will be
 easily re-usable for future versions of the Pupil.
 
 The Pupil Server plugin needs to be enabled. It publishes a stream of
-information with [ZeroMQ](http://zeromq.org/), with the Publisher-Subscriber
-communication pattern. The external recorder creates a subscriber and reads
-the messages.
+information with ZeroMQ, with the Publisher-Subscriber communication pattern.
+The external recorder creates a subscriber and reads the messages.
 
 Additionally, the external recorder uses the Request-Reply ZeroMQ pattern. It
 listens for the following requests:
