@@ -10,6 +10,8 @@ This repository contains the “server” part. It runs on the same computer as 
 Pupil software. See the [cosy-pupil-client](https://github.com/UCL-CATL/cosy-pupil-client)
 repository for the client part.
 
+cosy-pupil-server is licensed under the GNU General Public License version 3 or later.
+
 external-recorder
 -----------------
 
