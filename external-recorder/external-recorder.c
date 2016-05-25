@@ -111,6 +111,17 @@ recorder_init (Recorder *recorder)
 	ok = zmq_connect (recorder->pupil_remote, PUPIL_REMOTE_ADDRESS);
 	g_assert_cmpint (ok, ==, 0);
 
+	/* We should receive the reply almost directly, it's on the same
+	 * computer. Setting a timeout permits to know if we can't communicate
+	 * with the Pupil Remote plugin.
+	 */
+	timeout_ms = 1000;
+	ok = zmq_setsockopt (recorder->pupil_remote,
+			     ZMQ_RCVTIMEO,
+			     &timeout_ms,
+			     sizeof (int));
+	g_assert_cmpint (ok, ==, 0);
+
 	recorder->replier = zmq_socket (recorder->context, ZMQ_REP);
 	ok = zmq_bind (recorder->replier, REPLIER_ENDPOINT);
 	g_assert_cmpint (ok, ==, 0);
@@ -498,6 +509,11 @@ recorder_start (Recorder *recorder)
 		  0);
 
 	reply_pupil_remote = receive_next_message (recorder->pupil_remote);
+	if (reply_pupil_remote == NULL)
+	{
+		g_error ("Timeout. Impossible to communicate with the Pupil Remote plugin.");
+	}
+
 	g_print ("Pupil Remote reply: %s\n", reply_pupil_remote);
 	g_free (reply_pupil_remote);
 
@@ -540,6 +556,11 @@ recorder_stop (Recorder *recorder)
 		  0);
 
 	reply_pupil_remote = receive_next_message (recorder->pupil_remote);
+	if (reply_pupil_remote == NULL)
+	{
+		g_error ("Timeout. Impossible to communicate with the Pupil Remote plugin.");
+	}
+
 	g_print ("Pupil Remote reply: %s\n", reply_pupil_remote);
 	g_free (reply_pupil_remote);
 
