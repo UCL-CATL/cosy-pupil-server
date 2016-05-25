@@ -27,6 +27,7 @@
 #include <zmq.h>
 
 #define PUPIL_SERVER_ADDRESS "tcp://localhost:5000"
+#define PUPIL_REMOTE_ADDRESS "tcp://localhost:50020"
 #define REPLIER_ENDPOINT "tcp://*:6000"
 
 #define DEBUG FALSE
@@ -50,6 +51,9 @@ struct _Recorder
 
 	/* The subscriber to listen to the Pupil Broadcast Server. */
 	void *subscriber;
+
+	/* The requester to the Pupil Remote plugin. */
+	void *pupil_remote;
 
 	/* The replier, to listen and reply to some requests coming from another
 	 * program than the Pupil (in our case, a Matlab script running on
@@ -103,6 +107,10 @@ recorder_init (Recorder *recorder)
 			     sizeof (int));
 	g_assert_cmpint (ok, ==, 0);
 
+	recorder->pupil_remote = zmq_socket (recorder->context, ZMQ_REQ);
+	ok = zmq_connect (recorder->pupil_remote, PUPIL_REMOTE_ADDRESS);
+	g_assert_cmpint (ok, ==, 0);
+
 	recorder->replier = zmq_socket (recorder->context, ZMQ_REP);
 	ok = zmq_bind (recorder->replier, REPLIER_ENDPOINT);
 	g_assert_cmpint (ok, ==, 0);
@@ -131,6 +139,9 @@ recorder_finalize (Recorder *recorder)
 {
 	zmq_close (recorder->subscriber);
 	recorder->subscriber = NULL;
+
+	zmq_close (recorder->pupil_remote);
+	recorder->pupil_remote = NULL;
 
 	zmq_close (recorder->replier);
 	recorder->replier = NULL;
@@ -473,11 +484,22 @@ end:
 static char *
 recorder_start (Recorder *recorder)
 {
+	const char *request_pupil_remote;
+	char *reply_pupil_remote;
 	char *reply;
 
 	printf ("start\n");
 	recorder->record = TRUE;
-	reply = g_strdup ("ack");
+
+	request_pupil_remote = "R";
+	zmq_send (recorder->pupil_remote,
+		  request_pupil_remote,
+		  strlen (request_pupil_remote),
+		  0);
+
+	reply_pupil_remote = receive_next_message (recorder->pupil_remote);
+	printf ("pupil remote reply: %s\n", reply_pupil_remote);
+	g_free (reply_pupil_remote);
 
 	if (recorder->timer == NULL)
 	{
@@ -488,25 +510,40 @@ recorder_start (Recorder *recorder)
 		g_timer_start (recorder->timer);
 	}
 
+	reply = g_strdup ("ack");
 	return reply;
 }
 
 static char *
 recorder_stop (Recorder *recorder)
 {
+	const char *request_pupil_remote;
+	char *reply_pupil_remote;
 	char *reply;
 
-	if (recorder->timer == NULL)
+	printf ("stop\n");
+
+	if (recorder->timer != NULL)
+	{
+		g_timer_stop (recorder->timer);
+		reply = g_strdup_printf ("%lf", g_timer_elapsed (recorder->timer, NULL));
+	}
+	else
 	{
 		reply = g_strdup ("no timer");
-		return reply;
 	}
 
-	g_timer_stop (recorder->timer);
+	request_pupil_remote = "r";
+	zmq_send (recorder->pupil_remote,
+		  request_pupil_remote,
+		  strlen (request_pupil_remote),
+		  0);
 
-	printf ("stop\n");
+	reply_pupil_remote = receive_next_message (recorder->pupil_remote);
+	printf ("pupil remote reply: %s\n", reply_pupil_remote);
+	g_free (reply_pupil_remote);
+
 	recorder->record = FALSE;
-	reply = g_strdup_printf ("%lf", g_timer_elapsed (recorder->timer, NULL));
 
 	return reply;
 }
