@@ -488,7 +488,7 @@ recorder_start (Recorder *recorder)
 	char *reply_pupil_remote;
 	char *reply;
 
-	printf ("start\n");
+	g_print ("Send request to start recording to the Pupil Remote plugin...\n");
 	recorder->record = TRUE;
 
 	request_pupil_remote = "R";
@@ -498,7 +498,7 @@ recorder_start (Recorder *recorder)
 		  0);
 
 	reply_pupil_remote = receive_next_message (recorder->pupil_remote);
-	printf ("pupil remote reply: %s\n", reply_pupil_remote);
+	g_print ("Pupil Remote reply: %s\n", reply_pupil_remote);
 	g_free (reply_pupil_remote);
 
 	if (recorder->timer == NULL)
@@ -521,7 +521,7 @@ recorder_stop (Recorder *recorder)
 	char *reply_pupil_remote;
 	char *reply;
 
-	printf ("stop\n");
+	g_print ("Send request to stop recording to the Pupil Remote plugin...\n");
 
 	if (recorder->timer != NULL)
 	{
@@ -540,7 +540,7 @@ recorder_stop (Recorder *recorder)
 		  0);
 
 	reply_pupil_remote = receive_next_message (recorder->pupil_remote);
-	printf ("pupil remote reply: %s\n", reply_pupil_remote);
+	g_print ("Pupil Remote reply: %s\n", reply_pupil_remote);
 	g_free (reply_pupil_remote);
 
 	recorder->record = FALSE;
@@ -595,6 +595,8 @@ read_request (Recorder *recorder)
 		return;
 	}
 
+	g_print ("Request from cosy-pupil-client: %s\n", request);
+
 	if (g_str_equal (request, "start"))
 	{
 		reply = recorder_start (recorder);
@@ -618,14 +620,16 @@ read_request (Recorder *recorder)
 	}
 	else
 	{
-		printf ("Unknown request: %s\n", request);
+		g_warning ("Unknown request: %s", request);
 		reply = g_strdup ("unknown request");
 	}
 
+	g_print ("Send reply to cosy-pupil-client...\n");
 	zmq_send (recorder->replier,
 		  reply,
 		  strlen (reply),
 		  0);
+	g_print ("done.\n");
 
 	g_free (request);
 	g_free (reply);
