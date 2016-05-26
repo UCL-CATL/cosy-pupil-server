@@ -13,10 +13,12 @@ RUN dnf -y update && \
 
 ADD . /root/cosy-pupil-server
 
-WORKDIR /root/cosy-pupil-server
+# Make sure that the code is compilable
+RUN cd /root/cosy-pupil-server && \
+	cd external-recorder && make && cd .. && \
+	cd tests && make
 
-RUN cd external-recorder && make && cd - && \
-	cd tests && make && cd -
+WORKDIR /root/cosy-pupil-server/external-recorder
 
 # Set default command
 CMD ["/usr/bin/bash"]
