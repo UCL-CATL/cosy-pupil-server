@@ -54,7 +54,7 @@ The Pupil Server publishes a stream of information with ZeroMQ, with the
 Publisher-Subscriber communication pattern. The external-recorder creates a
 subscriber and reads the messages.
 
-The external-recorder can send requests to the Pupil Capture software, via the
+The external-recorder sends requests to the Pupil Capture software, via the
 Pupil Remote plugin, to start and stop the recording (Pupil Capture records
 more data than external-recorder, so it's better to start the recording on
 Pupil Capture too). This uses the Request-Reply ZeroMQ pattern.
