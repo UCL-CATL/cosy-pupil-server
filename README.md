@@ -10,24 +10,31 @@ This repository contains the “server” part. It runs on the same computer as 
 Pupil software. See the [cosy-pupil-client](https://github.com/UCL-CATL/cosy-pupil-client)
 repository for the client part.
 
+The recommended way to use cosy-pupil-server is with a Docker container. A
+Dockerfile is provided, see the instructions below to know how to build and run
+the container.
+
 cosy-pupil-server is licensed under the GNU General Public License version 3 or later.
 
 Dependencies
 ------------
 
+You don't need to install those dependencies, it's installed with the Docker
+container. The list is just for documentation purposes.
+
 - [ZeroMQ](http://zeromq.org/)
 - [GLib](https://wiki.gnome.org/Projects/GLib)
 - [JSON-GLib](https://wiki.gnome.org/Projects/JsonGlib)
 
-Build
------
+Build the container image
+-------------------------
 
-On Linux:
+    # ./build.sh
 
-```
-$ cd external-recorder/
-$ make
-```
+Run the container
+-----------------
+
+    # ./run.sh
 
 external-recorder
 -----------------
@@ -36,22 +43,30 @@ It records some Pupil capture data, but externally to the Pupil software. The
 Pupil software is not modified, and it is not a plugin. So normally it will be
 easily re-usable for future versions of the Pupil.
 
-The Pupil Server plugin needs to be enabled. It publishes a stream of
-information with ZeroMQ, with the Publisher-Subscriber communication pattern.
-The external recorder creates a subscriber and reads the messages.
+The external-recorder acts as a mediator between Pupil Capture and
+[cosy-pupil-client](https://github.com/UCL-CATL/cosy-pupil-client). The
+cosy-pupil-client talks only to the external-recorder with the Request-Reply
+ZeroMQ pattern. In our case cosy-pupil-client runs on another computer running
+a real-time Matlab program.
 
-Additionally, the external recorder uses the Request-Reply ZeroMQ pattern. It
-listens for the following requests:
+The Pupil Server and Pupil Remote plugins need to be enabled in Pupil Capture.
+The Pupil Server publishes a stream of information with ZeroMQ, with the
+Publisher-Subscriber communication pattern. The external-recorder creates a
+subscriber and reads the messages.
+
+The external-recorder can send requests to the Pupil Capture software, via the
+Pupil Remote plugin, to start and stop the recording (Pupil Capture records
+more data than external-recorder, so it's better to start the recording on
+Pupil Capture too). This uses the Request-Reply ZeroMQ pattern.
+
+The external-recorder listens to the following ZeroMQ requests coming from
+cosy-pupil-client:
 
 - `start`: start recording. The reply should be "ack".
 - `stop`: stop recording. The reply should be the number of seconds elapsed
   since the `start` signal, as a floating point number (encoded as a string).
 - `receive_data`: receive the recorded data (as a string) since the latest call
   to `receive_data`.
-
-The requests are sent by another process. In our case on another computer
-running a real-time Matlab program (see
-[cosy-pupil-client](https://github.com/UCL-CATL/cosy-pupil-client)).
 
 For the `stop` request, the reply is useful to know the latency:
 
