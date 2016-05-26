@@ -240,7 +240,7 @@ receive_pupil_message (Recorder  *recorder,
 	g_return_val_if_fail (ok == 0, FALSE);
 	if (!more)
 	{
-		g_warning ("A Pupil message must be in two parts.");
+		g_warning ("A Pupil message must be in two parts. Only one part received.");
 		return FALSE;
 	}
 
@@ -253,7 +253,21 @@ receive_pupil_message (Recorder  *recorder,
 	g_return_val_if_fail (ok == 0, FALSE);
 	if (more)
 	{
-		g_warning ("A Pupil message must be in two parts.");
+		/* Flush queue, to not receive those parts the next time this
+		 * function is called.
+		 */
+		while (more)
+		{
+			char *msg;
+
+			msg = receive_next_message (recorder->subscriber);
+			g_free (msg);
+
+			ok = zmq_getsockopt (recorder->subscriber, ZMQ_RCVMORE, &more, &more_size);
+			g_return_val_if_fail (ok == 0, FALSE);
+		}
+
+		g_warning ("A Pupil message must be in two parts. More than two parts received.");
 		return FALSE;
 	}
 
