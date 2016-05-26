@@ -19,4 +19,4 @@ RUN cd external-recorder && make && cd - && \
 	cd tests && make && cd -
 
 # Set default command
-CMD ["/root/cosy-pupil-server/external-recorder/external-recorder"]
+CMD ["/usr/bin/bash"]
