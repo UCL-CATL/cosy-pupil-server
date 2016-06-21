@@ -6,6 +6,8 @@ useful for neurosciences research at the Cognition and System division (COSY) of
 the [Institute of NeuroSciences](http://www.uclouvain.be/en-ions.html) at the
 Université Catholique de Louvain, Belgium.
 
+Version: 2.0-beta
+
 This repository contains the “server” part. It runs on the same computer as the
 Pupil software. See the [cosy-pupil-client](https://github.com/UCL-CATL/cosy-pupil-client)
 repository for the client part.
