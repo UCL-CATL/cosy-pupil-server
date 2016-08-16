@@ -1,0 +1,18 @@
+Troubleshooting
+===============
+
+Some encountered problems, with solutions.
+
+Cannot bind ZeroMQ socket
+-------------------------
+
+Maybe another Docker container was not terminated correctly and is a "zombie"
+process. When gnome-terminal is closed while the container is still running,
+the container is not removed, which can block the access to the TCP port.
+
+To see all Docker containers:
+$ sudo docker ps -a
+
+To remove all Docker containers at once:
+$ sudo docker stop $(sudo docker ps -a -q)
+$ sudo docker rm $(sudo docker ps -a -q)
