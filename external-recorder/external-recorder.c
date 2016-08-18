@@ -79,7 +79,10 @@ recorder_init (Recorder *recorder)
 	recorder->context = zmq_ctx_new ();
 	recorder->subscriber = zmq_socket (recorder->context, ZMQ_SUB);
 	ok = zmq_connect (recorder->subscriber, PUPIL_SERVER_ADDRESS);
-	g_assert_cmpint (ok, ==, 0);
+	if (ok != 0)
+	{
+		g_error ("Error when connecting to Pupil Server: %s", strerror (errno));
+	}
 
 	if (DEBUG)
 	{
@@ -95,7 +98,11 @@ recorder_init (Recorder *recorder)
 			     ZMQ_SUBSCRIBE,
 			     filter,
 			     strlen (filter));
-	g_assert_cmpint (ok, ==, 0);
+	if (ok != 0)
+	{
+		g_error ("Error when setting zmq socket option for the subscriber to the Pupil Server: %s",
+			 strerror (errno));
+	}
 
 	/* Don't block the subscriber, to prioritize the replier, to have the
 	 * minimum latency between the client and server.
@@ -105,11 +112,18 @@ recorder_init (Recorder *recorder)
 			     ZMQ_RCVTIMEO,
 			     &timeout_ms,
 			     sizeof (int));
-	g_assert_cmpint (ok, ==, 0);
+	if (ok != 0)
+	{
+		g_error ("Error when setting zmq socket option for the subscriber to the Pupil Server: %s",
+			 strerror (errno));
+	}
 
 	recorder->pupil_remote = zmq_socket (recorder->context, ZMQ_REQ);
 	ok = zmq_connect (recorder->pupil_remote, PUPIL_REMOTE_ADDRESS);
-	g_assert_cmpint (ok, ==, 0);
+	if (ok != 0)
+	{
+		g_error ("Error when connecting to Pupil Remote: %s", strerror (errno));
+	}
 
 	/* We should receive the reply almost directly, it's on the same
 	 * computer. Setting a timeout permits to know if we can't communicate
@@ -120,11 +134,20 @@ recorder_init (Recorder *recorder)
 			     ZMQ_RCVTIMEO,
 			     &timeout_ms,
 			     sizeof (int));
-	g_assert_cmpint (ok, ==, 0);
+	if (ok != 0)
+	{
+		g_error ("Error when setting zmq socket option for the Pupil Remote: %s",
+			 strerror (errno));
+	}
 
 	recorder->replier = zmq_socket (recorder->context, ZMQ_REP);
 	ok = zmq_bind (recorder->replier, REPLIER_ENDPOINT);
-	g_assert_cmpint (ok, ==, 0);
+	if (ok != 0)
+	{
+		g_error ("Error when creating zmq socket at \"" REPLIER_ENDPOINT "\": %s.\n"
+			 "Is another external-recorder process running?",
+			 strerror (errno));
+	}
 
 	/* We need to record at at least 10 Hz, so every 100 ms maximum. Setting
 	 * a timeout of 10 ms should be thus a good choice. It will alternate
@@ -138,7 +161,11 @@ recorder_init (Recorder *recorder)
 			     ZMQ_RCVTIMEO,
 			     &timeout_ms,
 			     sizeof (int));
-	g_assert_cmpint (ok, ==, 0);
+	if (ok != 0)
+	{
+		g_error ("Error when setting zmq socket option for the replier: %s",
+			 strerror (errno));
+	}
 
 	recorder->data_queue = g_queue_new ();
 	recorder->timer = NULL;
