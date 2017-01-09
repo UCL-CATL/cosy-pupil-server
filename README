@@ -1,0 +1,33 @@
+Pupil
+=====
+
+1. Run Pupil Capture
+--------------------
+
+$ sudo ./run-pupil.sh
+<enter password>
+We are then inside the Docker container. Launch the application:
+# python pupil_src/capture/main.py
+
+Enable Pupil Server and Pupil Remote plugins.
+FIXME: enable those plugins automatically.
+
+2. Run cosy-pupil-server
+------------------------
+
+In a new terminal:
+
+$ sudo ./run-cosy-pupil-server.sh
+<enter password>
+Inside the container:
+# ./external-recorder
+
+3. Calibration
+--------------
+
+Do the calibration with Pupil Capture.
+
+4. Run cosy-pupil-client
+------------------------
+
+From Matlab, run the experiment.

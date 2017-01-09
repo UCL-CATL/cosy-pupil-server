@@ -1,0 +1,87 @@
+Computer requirements
+=====================
+
+Minimum 4GB of RAM. With less than that, it can swap during compilation of C++
+code for the Pupil.
+
+Disk partitions
+===============
+
+- /dev/sda1 20GiB XFS mounted on /
+- /dev/sda2 4GiB swap
+- /dev/sda3 10GiB empty, will be used for Docker storage
+- /dev/sda4 10GiB XFS mounted on /home
+
+The /home partition must be the last one, so after cloning the whole disk the
+/home partition can be extended.
+
+OS install
+==========
+
+- Install CentOS 7 with GNOME desktop
+
+$ gsettings set org.gnome.software download-updates false
+
+# yum update
+reboot
+
+# yum install epel-release
+# yum install ntfs-3g ntfsprogs htop
+
+Disable selinux: edit /etc/selinux/config
+reboot
+
+Do not start tracker (file-system miner and indexer):
+$ mkdir -p ~/.config/autostart/
+$ cd ~/.config/autostart/
+$ cp /etc/xdg/autostart/tracker-*.desktop .
+$ sed -i 's/Autostart-enabled=true/Autostart-enabled=false/g' *.desktop
+
+docker-pupil
+============
+
+# yum install docker
+
+Follow instructions at:
+https://docs.docker.com/engine/userguide/storagedriver/device-mapper-driver/
+to configure the storage driver for Docker. device-mapper is currently the
+preferred option on CentOS. OverlayFS is simpler to configure, but it's
+too bleeding edge on CentOS 7 (OverlayFS has been merged in Linux upstream
+in version 3.18, but the kernel version of CentOS is 3.10 containing a
+backport of OverlayFS).
+For the docker storage options, after following the guide at the above link,
+it's simpler to put the options in /etc/sysconfig/docker-storage instead of
+using the docker-storage-setup utility that comes with CentOS:
+
+# echo "DOCKER_STORAGE_OPTIONS=\"--storage-driver=devicemapper --storage-opt=dm.thinpooldev=/dev/mapper/docker-thinpool --storage-opt dm.use_deferred_removal=true\"" > /etc/sysconfig/docker-storage
+
+Then we can start the docker service:
+# systemctl start docker
+# systemctl enable docker
+
+https://github.com/UCL-CATL/docker-pupil
+
+$ git clone https://github.com/UCL-CATL/docker-pupil.git
+$ cd docker-pupil/
+$ su
+# ./build.sh
+<it can take a while>
+
+And follow the instructions at docker-pupil/host-config.
+
+cosy-pupil-server
+=================
+
+https://github.com/UCL-CATL/cosy-pupil-server
+
+$ git clone https://github.com/UCL-CATL/cosy-pupil-server.git
+$ cd cosy-pupil-server/
+$ su
+# ./build.sh
+
+Maintenance
+===========
+
+Check Docker storage:
+# lvs
+See: https://docs.docker.com/engine/userguide/storagedriver/device-mapper-driver/
