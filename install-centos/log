@@ -37,6 +37,13 @@ $ cd ~/.config/autostart/
 $ cp /etc/xdg/autostart/tracker-*.desktop .
 $ sed -i 's/Autostart-enabled=true/Autostart-enabled=false/g' *.desktop
 
+Configure sudo to not ask a password:
+# visudo
+Comment:
+%wheel ALL=(ALL)       ALL
+Uncomment:
+%wheel  ALL=(ALL)       NOPASSWD: ALL
+
 docker-pupil
 ============
 
