@@ -1,14 +1,13 @@
-FROM fedora:24
+# https://github.com/UCL-CATL/cosy-docker-layer
+FROM ucl-cosy/cosy-docker-layer
+
 MAINTAINER Sébastien Wilmet
 
-RUN dnf -y update && \
-	dnf -y group install "C Development Tools and Libraries" && \
-	dnf -y install \
+RUN dnf -y install \
 		zeromq-devel \
 		czmq-devel \
 		glib2-devel \
-		json-glib-devel \
-		git && \
+		json-glib-devel && \
 	dnf clean all
 
 ADD . /root/cosy-pupil-server
