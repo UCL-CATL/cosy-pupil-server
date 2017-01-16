@@ -14,8 +14,8 @@ ADD . /root/cosy-pupil-server
 
 # Make sure that the code is compilable
 RUN cd /root/cosy-pupil-server && \
-	cd external-recorder && make && cd .. && \
-	cd tests && make
+	cd external-recorder && make clean && make && cd .. && \
+	cd tests && make clean && make
 
 WORKDIR /root/cosy-pupil-server/external-recorder
 
