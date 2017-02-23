@@ -81,7 +81,7 @@ recorder_init (Recorder *recorder)
 	ok = zmq_connect (recorder->subscriber, PUPIL_SERVER_ADDRESS);
 	if (ok != 0)
 	{
-		g_error ("Error when connecting to Pupil Server: %s", strerror (errno));
+		g_error ("Error when connecting to Pupil Server: %s", g_strerror (errno));
 	}
 
 	if (DEBUG)
@@ -101,7 +101,7 @@ recorder_init (Recorder *recorder)
 	if (ok != 0)
 	{
 		g_error ("Error when setting zmq socket option for the subscriber to the Pupil Server: %s",
-			 strerror (errno));
+			 g_strerror (errno));
 	}
 
 	/* Don't block the subscriber, to prioritize the replier, to have the
@@ -115,14 +115,14 @@ recorder_init (Recorder *recorder)
 	if (ok != 0)
 	{
 		g_error ("Error when setting zmq socket option for the subscriber to the Pupil Server: %s",
-			 strerror (errno));
+			 g_strerror (errno));
 	}
 
 	recorder->pupil_remote = zmq_socket (recorder->context, ZMQ_REQ);
 	ok = zmq_connect (recorder->pupil_remote, PUPIL_REMOTE_ADDRESS);
 	if (ok != 0)
 	{
-		g_error ("Error when connecting to Pupil Remote: %s", strerror (errno));
+		g_error ("Error when connecting to Pupil Remote: %s", g_strerror (errno));
 	}
 
 	/* We should receive the reply almost directly, it's on the same
@@ -137,7 +137,7 @@ recorder_init (Recorder *recorder)
 	if (ok != 0)
 	{
 		g_error ("Error when setting zmq socket option for the Pupil Remote: %s",
-			 strerror (errno));
+			 g_strerror (errno));
 	}
 
 	recorder->replier = zmq_socket (recorder->context, ZMQ_REP);
@@ -146,7 +146,7 @@ recorder_init (Recorder *recorder)
 	{
 		g_error ("Error when creating zmq socket at \"" REPLIER_ENDPOINT "\": %s.\n"
 			 "Is another external-recorder process running?",
-			 strerror (errno));
+			 g_strerror (errno));
 	}
 
 	/* We need to record at at least 10 Hz, so every 100 ms maximum. Setting
@@ -164,7 +164,7 @@ recorder_init (Recorder *recorder)
 	if (ok != 0)
 	{
 		g_error ("Error when setting zmq socket option for the replier: %s",
-			 strerror (errno));
+			 g_strerror (errno));
 	}
 
 	recorder->data_queue = g_queue_new ();
