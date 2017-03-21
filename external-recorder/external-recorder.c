@@ -26,11 +26,10 @@
 #include <string.h>
 #include <zmq.h>
 
-#define PUPIL_SERVER_ADDRESS "tcp://localhost:5000"
 #define PUPIL_REMOTE_ADDRESS "tcp://localhost:50020"
 #define REPLIER_ENDPOINT "tcp://*:6000"
 
-#define DEBUG FALSE
+#define DEBUG TRUE
 
 typedef struct _Data Data;
 struct _Data
@@ -49,13 +48,11 @@ struct _Recorder
 	/* The zeromq context. */
 	void *context;
 
-#if 0
-	/* The subscriber to listen to the Pupil Broadcast Server. */
-	void *subscriber;
-#endif
-
 	/* The requester to the Pupil Remote plugin. */
 	void *pupil_remote;
+
+	/* The subscriber to listen to the data coming from Pupil Capture. */
+	void *subscriber;
 
 	/* The replier, to listen and reply to some requests coming from another
 	 * program than the Pupil (in our case, a Matlab script running on
@@ -70,6 +67,39 @@ struct _Recorder
 
 	guint record : 1;
 };
+
+/* Receives the next zmq message part as a string.
+ * Free the return value with g_free() when no longer needed.
+ */
+static char *
+receive_next_message (void *socket)
+{
+	zmq_msg_t msg;
+	int n_bytes;
+	char *str = NULL;
+	int ok;
+
+	ok = zmq_msg_init (&msg);
+	g_return_val_if_fail (ok == 0, NULL);
+
+	n_bytes = zmq_msg_recv (&msg, socket, 0);
+	if (n_bytes > 0)
+	{
+		void *raw_data;
+
+		raw_data = zmq_msg_data (&msg);
+		str = g_strndup (raw_data, n_bytes);
+	}
+
+	ok = zmq_msg_close (&msg);
+	if (ok != 0)
+	{
+		g_free (str);
+		g_return_val_if_reached (NULL);
+	}
+
+	return str;
+}
 
 static void
 init_pupil_remote (Recorder *recorder)
@@ -105,16 +135,44 @@ init_pupil_remote (Recorder *recorder)
 static void
 init_subscriber (Recorder *recorder)
 {
-#if 0
+	const char *request;
+	char *sub_port;
+	char *address;
 	const char *filter;
 	int timeout_ms;
 	int ok;
 
+	g_assert (recorder->pupil_remote != NULL);
+	g_assert (recorder->subscriber == NULL);
+
+	/* Do the same as in:
+	 * https://github.com/pupil-labs/pupil-helpers/blob/master/pupil_remote/filter_messages.py
+	 *
+	 * Plus tune some ZeroMQ options.
+	 */
+
+	g_print ("Ask to Pupil Remote the subscriber port.\n");
+	request = "SUB_PORT";
+	zmq_send (recorder->pupil_remote,
+		  request,
+		  strlen (request),
+		  0);
+
+	sub_port = receive_next_message (recorder->pupil_remote);
+	if (sub_port == NULL)
+	{
+		g_error ("Timeout. Impossible to communicate with the Pupil Remote plugin.");
+	}
+
+	address = g_strdup_printf ("tcp://localhost:%s", sub_port);
+	g_print ("Subcriber address: %s\n", address);
+
 	recorder->subscriber = zmq_socket (recorder->context, ZMQ_SUB);
-	ok = zmq_connect (recorder->subscriber, PUPIL_SERVER_ADDRESS);
+	ok = zmq_connect (recorder->subscriber, address);
 	if (ok != 0)
 	{
-		g_error ("Error when connecting to Pupil Server: %s", g_strerror (errno));
+		g_error ("Error when connecting to the ZeroMQ subscriber: %s",
+			 g_strerror (errno));
 	}
 
 	if (DEBUG)
@@ -124,7 +182,7 @@ init_subscriber (Recorder *recorder)
 	}
 	else
 	{
-		filter = "gaze_positions";
+		filter = "pupil.";
 	}
 
 	ok = zmq_setsockopt (recorder->subscriber,
@@ -133,7 +191,7 @@ init_subscriber (Recorder *recorder)
 			     strlen (filter));
 	if (ok != 0)
 	{
-		g_error ("Error when setting zmq socket option for the subscriber to the Pupil Server: %s",
+		g_error ("Error when setting ZeroMQ socket option for the subscriber: %s",
 			 g_strerror (errno));
 	}
 
@@ -147,10 +205,12 @@ init_subscriber (Recorder *recorder)
 			     sizeof (int));
 	if (ok != 0)
 	{
-		g_error ("Error when setting zmq socket option for the subscriber to the Pupil Server: %s",
+		g_error ("Error when setting ZeroMQ socket option for the subscriber: %s",
 			 g_strerror (errno));
 	}
-#endif
+
+	g_free (sub_port);
+	g_free (address);
 }
 
 static void
@@ -207,10 +267,8 @@ recorder_init (Recorder *recorder)
 static void
 recorder_finalize (Recorder *recorder)
 {
-#if 0
 	zmq_close (recorder->subscriber);
 	recorder->subscriber = NULL;
-#endif
 
 	zmq_close (recorder->pupil_remote);
 	recorder->pupil_remote = NULL;
@@ -239,40 +297,6 @@ data_new (void)
 }
 #endif
 
-/* Receives the next zmq message part as a string.
- * Free the return value with g_free() when no longer needed.
- */
-static char *
-receive_next_message (void *socket)
-{
-	zmq_msg_t msg;
-	int n_bytes;
-	char *str = NULL;
-	int ok;
-
-	ok = zmq_msg_init (&msg);
-	g_return_val_if_fail (ok == 0, NULL);
-
-	n_bytes = zmq_msg_recv (&msg, socket, 0);
-	if (n_bytes > 0)
-	{
-		void *raw_data;
-
-		raw_data = zmq_msg_data (&msg);
-		str = g_strndup (raw_data, n_bytes);
-	}
-
-	ok = zmq_msg_close (&msg);
-	if (ok != 0)
-	{
-		g_free (str);
-		g_return_val_if_reached (NULL);
-	}
-
-	return str;
-}
-
-#if 0
 /* Receive a Pupil message from the Pupil Broadcast Server plugin.
  * It must be a multi-part message, with exactly two parts: the topic and the
  * JSON data.
@@ -338,6 +362,7 @@ receive_pupil_message (Recorder  *recorder,
 	return TRUE;
 }
 
+#if 0
 /* The 'base' node contains the pupil_positions, i.e. the data from the eye
  * camera.
  */
@@ -528,6 +553,7 @@ out:
 	g_object_unref (parser);
 	return ok;
 }
+#endif
 
 static void
 read_all_pupil_messages (Recorder *recorder)
@@ -559,17 +585,18 @@ read_all_pupil_messages (Recorder *recorder)
 			goto end;
 		}
 
+#if 0
 		if (!parse_json_data (recorder, json_data))
 		{
 			g_warning ("Failed to parse the JSON data.");
 		}
+#endif
 
 end:
 		g_free (topic);
 		g_free (json_data);
 	}
 }
-#endif
 
 static char *
 recorder_start (Recorder *recorder)
@@ -744,9 +771,7 @@ main (void)
 
 	while (TRUE)
 	{
-#if 0
 		read_all_pupil_messages (&recorder);
-#endif
 		read_request (&recorder);
 	}
 
