@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -W `pkg-config --cflags libczmq`
+CFLAGS = -Wall `pkg-config --cflags libczmq`
 LDFLAGS = `pkg-config --libs libczmq`
 EXECUTABLE = test-request
 
