@@ -1,7 +1,7 @@
 /*
  * This file is part of cosy-pupil-server.
  *
- * Copyright (C) 2016 - Université Catholique de Louvain
+ * Copyright (C) 2016, 2017 - Université Catholique de Louvain
  *
  * cosy-pupil-server is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the Free
@@ -72,17 +72,44 @@ struct _Recorder
 };
 
 static void
-recorder_init (Recorder *recorder)
+init_pupil_remote (Recorder *recorder)
 {
-#if 0
-	const char *filter;
-#endif
 	int timeout_ms;
 	int ok;
 
-	recorder->context = zmq_ctx_new ();
+	g_assert (recorder->pupil_remote == NULL);
 
+	recorder->pupil_remote = zmq_socket (recorder->context, ZMQ_REQ);
+	ok = zmq_connect (recorder->pupil_remote, PUPIL_REMOTE_ADDRESS);
+	if (ok != 0)
+	{
+		g_error ("Error when connecting to Pupil Remote: %s", g_strerror (errno));
+	}
+
+	/* We should receive the reply almost directly, it's on the same
+	 * computer. Setting a timeout permits to know if we can't communicate
+	 * with the Pupil Remote plugin.
+	 */
+	timeout_ms = 1000;
+	ok = zmq_setsockopt (recorder->pupil_remote,
+			     ZMQ_RCVTIMEO,
+			     &timeout_ms,
+			     sizeof (int));
+	if (ok != 0)
+	{
+		g_error ("Error when setting zmq socket option for the Pupil Remote: %s",
+			 g_strerror (errno));
+	}
+}
+
+static void
+init_subscriber (Recorder *recorder)
+{
 #if 0
+	const char *filter;
+	int timeout_ms;
+	int ok;
+
 	recorder->subscriber = zmq_socket (recorder->context, ZMQ_SUB);
 	ok = zmq_connect (recorder->subscriber, PUPIL_SERVER_ADDRESS);
 	if (ok != 0)
@@ -124,28 +151,15 @@ recorder_init (Recorder *recorder)
 			 g_strerror (errno));
 	}
 #endif
+}
 
-	recorder->pupil_remote = zmq_socket (recorder->context, ZMQ_REQ);
-	ok = zmq_connect (recorder->pupil_remote, PUPIL_REMOTE_ADDRESS);
-	if (ok != 0)
-	{
-		g_error ("Error when connecting to Pupil Remote: %s", g_strerror (errno));
-	}
+static void
+init_replier (Recorder *recorder)
+{
+	int timeout_ms;
+	int ok;
 
-	/* We should receive the reply almost directly, it's on the same
-	 * computer. Setting a timeout permits to know if we can't communicate
-	 * with the Pupil Remote plugin.
-	 */
-	timeout_ms = 1000;
-	ok = zmq_setsockopt (recorder->pupil_remote,
-			     ZMQ_RCVTIMEO,
-			     &timeout_ms,
-			     sizeof (int));
-	if (ok != 0)
-	{
-		g_error ("Error when setting zmq socket option for the Pupil Remote: %s",
-			 g_strerror (errno));
-	}
+	g_assert (recorder->replier == NULL);
 
 	recorder->replier = zmq_socket (recorder->context, ZMQ_REP);
 	ok = zmq_bind (recorder->replier, REPLIER_ENDPOINT);
@@ -173,6 +187,17 @@ recorder_init (Recorder *recorder)
 		g_error ("Error when setting zmq socket option for the replier: %s",
 			 g_strerror (errno));
 	}
+}
+
+static void
+recorder_init (Recorder *recorder)
+{
+	g_assert (recorder->context == NULL);
+	recorder->context = zmq_ctx_new ();
+
+	init_pupil_remote (recorder);
+	init_subscriber (recorder);
+	init_replier (recorder);
 
 	recorder->data_queue = g_queue_new ();
 	recorder->timer = NULL;
@@ -713,7 +738,7 @@ read_request (Recorder *recorder)
 int
 main (void)
 {
-	Recorder recorder;
+	Recorder recorder = { 0 };
 
 	recorder_init (&recorder);
 
