@@ -49,8 +49,10 @@ struct _Recorder
 	/* The zeromq context. */
 	void *context;
 
+#if 0
 	/* The subscriber to listen to the Pupil Broadcast Server. */
 	void *subscriber;
+#endif
 
 	/* The requester to the Pupil Remote plugin. */
 	void *pupil_remote;
@@ -72,11 +74,15 @@ struct _Recorder
 static void
 recorder_init (Recorder *recorder)
 {
+#if 0
 	const char *filter;
+#endif
 	int timeout_ms;
 	int ok;
 
 	recorder->context = zmq_ctx_new ();
+
+#if 0
 	recorder->subscriber = zmq_socket (recorder->context, ZMQ_SUB);
 	ok = zmq_connect (recorder->subscriber, PUPIL_SERVER_ADDRESS);
 	if (ok != 0)
@@ -117,6 +123,7 @@ recorder_init (Recorder *recorder)
 		g_error ("Error when setting zmq socket option for the subscriber to the Pupil Server: %s",
 			 g_strerror (errno));
 	}
+#endif
 
 	recorder->pupil_remote = zmq_socket (recorder->context, ZMQ_REQ);
 	ok = zmq_connect (recorder->pupil_remote, PUPIL_REMOTE_ADDRESS);
@@ -175,8 +182,10 @@ recorder_init (Recorder *recorder)
 static void
 recorder_finalize (Recorder *recorder)
 {
+#if 0
 	zmq_close (recorder->subscriber);
 	recorder->subscriber = NULL;
+#endif
 
 	zmq_close (recorder->pupil_remote);
 	recorder->pupil_remote = NULL;
@@ -197,11 +206,13 @@ recorder_finalize (Recorder *recorder)
 	}
 }
 
+#if 0
 static Data *
 data_new (void)
 {
 	return g_new0 (Data, 1);
 }
+#endif
 
 /* Receives the next zmq message part as a string.
  * Free the return value with g_free() when no longer needed.
@@ -236,6 +247,7 @@ receive_next_message (void *socket)
 	return str;
 }
 
+#if 0
 /* Receive a Pupil message from the Pupil Broadcast Server plugin.
  * It must be a multi-part message, with exactly two parts: the topic and the
  * JSON data.
@@ -532,6 +544,7 @@ end:
 		g_free (json_data);
 	}
 }
+#endif
 
 static char *
 recorder_start (Recorder *recorder)
@@ -706,7 +719,9 @@ main (void)
 
 	while (TRUE)
 	{
+#if 0
 		read_all_pupil_messages (&recorder);
+#endif
 		read_request (&recorder);
 	}
 
