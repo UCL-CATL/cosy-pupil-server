@@ -5,9 +5,9 @@ EXECUTABLE = external-recorder
 
 .PHONY: clean
 
-external-recorder: external-recorder.c
-
 all: $(EXECUTABLE)
+
+external-recorder: external-recorder.c
 
 clean:
 	rm -f $(EXECUTABLE)
