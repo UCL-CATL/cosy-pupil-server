@@ -127,7 +127,7 @@ init_pupil_remote (Recorder *recorder)
 			     sizeof (int));
 	if (ok != 0)
 	{
-		g_error ("Error when setting zmq socket option for the Pupil Remote: %s",
+		g_error ("Error when setting ZeroMQ socket option for the Pupil Remote: %s",
 			 g_strerror (errno));
 	}
 }
@@ -151,7 +151,7 @@ init_subscriber (Recorder *recorder)
 	 * Plus tune some ZeroMQ options.
 	 */
 
-	g_print ("Ask to Pupil Remote the subscriber port.\n");
+	/* Ask to Pupil Remote the subscriber port. */
 	request = "SUB_PORT";
 	zmq_send (recorder->pupil_remote,
 		  request,
@@ -165,7 +165,6 @@ init_subscriber (Recorder *recorder)
 	}
 
 	address = g_strdup_printf ("tcp://localhost:%s", sub_port);
-	g_print ("Subcriber address: %s\n", address);
 
 	recorder->subscriber = zmq_socket (recorder->context, ZMQ_SUB);
 	ok = zmq_connect (recorder->subscriber, address);
@@ -225,7 +224,7 @@ init_replier (Recorder *recorder)
 	ok = zmq_bind (recorder->replier, REPLIER_ENDPOINT);
 	if (ok != 0)
 	{
-		g_error ("Error when creating zmq socket at \"" REPLIER_ENDPOINT "\": %s.\n"
+		g_error ("Error when creating ZeroMQ socket at \"" REPLIER_ENDPOINT "\": %s.\n"
 			 "Is another external-recorder process running?",
 			 g_strerror (errno));
 	}
@@ -244,7 +243,7 @@ init_replier (Recorder *recorder)
 			     sizeof (int));
 	if (ok != 0)
 	{
-		g_error ("Error when setting zmq socket option for the replier: %s",
+		g_error ("Error when setting ZeroMQ socket option for the replier: %s",
 			 g_strerror (errno));
 	}
 }
@@ -262,6 +261,8 @@ recorder_init (Recorder *recorder)
 	recorder->data_queue = g_queue_new ();
 	recorder->timer = NULL;
 	recorder->record = FALSE;
+
+	g_print ("Initialized successfully.\n\n");
 }
 
 static void
