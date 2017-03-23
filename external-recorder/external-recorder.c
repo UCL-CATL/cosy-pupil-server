@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <zmq.h>
+#include <msgpack.h>
 
 #define PUPIL_REMOTE_ADDRESS "tcp://localhost:50020"
 #define REPLIER_ENDPOINT "tcp://*:6000"
@@ -297,6 +298,101 @@ data_new (void)
 }
 #endif
 
+/* Free the return value with g_free(). */
+static char *
+receive_json_data (void *subscriber)
+{
+	zmq_msg_t msg;
+	int n_bytes;
+	int ok;
+	void *raw_data;
+	msgpack_unpacker *unpacker;
+	msgpack_unpacked unpacked;
+	msgpack_unpack_return unpack_ret;
+	msgpack_object obj;
+	char *unpacked_str = NULL;
+
+	ok = zmq_msg_init (&msg);
+	g_return_val_if_fail (ok == 0, NULL);
+
+	n_bytes = zmq_msg_recv (&msg, subscriber, 0);
+	if (n_bytes <= 0)
+	{
+		goto out;
+	}
+
+	raw_data = zmq_msg_data (&msg);
+
+	unpacker = msgpack_unpacker_new (1024);
+	if (unpacker == NULL)
+	{
+		goto out;
+	}
+
+	if (msgpack_unpacker_buffer_capacity (unpacker) < n_bytes)
+	{
+		bool result;
+
+		result = msgpack_unpacker_reserve_buffer (unpacker, n_bytes);
+		if (!result)
+		{
+			g_warning ("Memory allocation error with msgpack.");
+			goto out;
+		}
+	}
+
+	memcpy (msgpack_unpacker_buffer (unpacker), raw_data, n_bytes);
+	msgpack_unpacker_buffer_consumed (unpacker, n_bytes);
+
+	msgpack_unpacked_init (&unpacked);
+	unpack_ret = msgpack_unpacker_next (unpacker, &unpacked);
+	if (unpack_ret != MSGPACK_UNPACK_SUCCESS)
+	{
+		g_warning ("Unpacking failed.");
+		msgpack_unpacked_destroy (&unpacked);
+		goto out;
+	}
+
+	obj = unpacked.data;
+
+	if (DEBUG)
+	{
+		msgpack_object_print (stdout, obj);
+		g_print ("\n");
+	}
+
+	if (obj.type == MSGPACK_OBJECT_STR)
+	{
+		unpacked_str = g_strndup (obj.via.str.ptr, obj.via.str.size);
+	}
+	else if (obj.type == MSGPACK_OBJECT_MAP)
+	{
+		/* TODO */
+		unpacked_str = g_strdup ("map");
+	}
+	else
+	{
+		g_warning ("The unpacked data has another type. type=%d", obj.type);
+	}
+
+	msgpack_unpacked_destroy (&unpacked);
+
+out:
+	if (unpacker != NULL)
+	{
+		msgpack_unpacker_free (unpacker);
+	}
+
+	ok = zmq_msg_close (&msg);
+	if (ok != 0)
+	{
+		g_free (unpacked_str);
+		g_return_val_if_reached (NULL);
+	}
+
+	return unpacked_str;
+}
+
 /* Receive a Pupil message from the Pupil Broadcast Server plugin.
  * It must be a multi-part message, with exactly two parts: the topic and the
  * JSON data.
@@ -332,7 +428,7 @@ receive_pupil_message (Recorder  *recorder,
 		return FALSE;
 	}
 
-	*json_data = receive_next_message (recorder->subscriber);
+	*json_data = receive_json_data (recorder->subscriber);
 
 	/* Determine if more message parts are to follow.
 	 * There must be exactly two parts. If there are more, it's an error.
