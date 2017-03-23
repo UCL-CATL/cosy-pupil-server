@@ -177,7 +177,9 @@ init_subscriber (Recorder *recorder)
 	if (DEBUG)
 	{
 		/* Receive all messages. */
-		filter = "";
+		/*filter = "";*/
+
+		filter = "pupil.";
 	}
 	else
 	{
@@ -298,9 +300,8 @@ data_new (void)
 }
 #endif
 
-/* Free the return value with g_free(). */
-static char *
-receive_msgpack_data (void *subscriber)
+static void
+read_msgpack_data (Recorder *recorder)
 {
 	zmq_msg_t msg;
 	int n_bytes;
@@ -310,12 +311,11 @@ receive_msgpack_data (void *subscriber)
 	msgpack_unpacked unpacked;
 	msgpack_unpack_return unpack_ret;
 	msgpack_object obj;
-	char *unpacked_str = NULL;
 
 	ok = zmq_msg_init (&msg);
-	g_return_val_if_fail (ok == 0, NULL);
+	g_return_if_fail (ok == 0);
 
-	n_bytes = zmq_msg_recv (&msg, subscriber, 0);
+	n_bytes = zmq_msg_recv (&msg, recorder->subscriber, 0);
 	if (n_bytes <= 0)
 	{
 		goto out;
@@ -358,18 +358,22 @@ receive_msgpack_data (void *subscriber)
 
 	if (DEBUG)
 	{
+		g_print ("msgpack data: ");
 		msgpack_object_print (stdout, obj);
 		g_print ("\n");
 	}
 
 	if (obj.type == MSGPACK_OBJECT_STR)
 	{
+		char *unpacked_str;
+
 		unpacked_str = g_strndup (obj.via.str.ptr, obj.via.str.size);
+		g_print ("msgpack string: %s\n", unpacked_str);
 	}
 	else if (obj.type == MSGPACK_OBJECT_MAP)
 	{
 		/* TODO */
-		unpacked_str = g_strdup ("map");
+		g_print ("msgpack map\n");
 	}
 	else
 	{
@@ -386,40 +390,36 @@ out:
 	}
 
 	ok = zmq_msg_close (&msg);
-	if (ok != 0)
-	{
-		g_free (unpacked_str);
-		g_return_val_if_reached (NULL);
-	}
-
-	return unpacked_str;
+	g_return_if_fail (ok == 0);
 }
 
-/* Receives a Pupil message from the subscriber.
+/* Reads a Pupil message from the subscriber.
  * It must be a multi-part message, with exactly two parts: the topic and the
  * msgpack data.
- * If successful, TRUE is returned.
- * Regardless of the return value, you need to free *topic and *data when no
- * longer needed.
+ * Returns: TRUE if a message has been read, FALSE if there were no messages.
  */
 static gboolean
-receive_pupil_message (Recorder  *recorder,
-		       char     **topic,
-		       char     **data)
+read_pupil_message (Recorder *recorder)
 {
+	char *topic;
 	int64_t more;
 	size_t more_size = sizeof (more);
 	int ok;
 
-	g_return_val_if_fail (topic != NULL && *topic == NULL, FALSE);
-	g_return_val_if_fail (data != NULL && *data == NULL, FALSE);
-
-	*topic = receive_next_message (recorder->subscriber);
-	if (*topic == NULL)
+	topic = receive_next_message (recorder->subscriber);
+	if (topic == NULL)
 	{
 		/* Timeout, no messages. */
 		return FALSE;
 	}
+
+	if (DEBUG)
+	{
+		g_print ("Topic: %s\n", topic);
+	}
+
+	g_free (topic);
+	topic = NULL;
 
 	/* Determine if more message parts are to follow. */
 	ok = zmq_getsockopt (recorder->subscriber, ZMQ_RCVMORE, &more, &more_size);
@@ -427,10 +427,10 @@ receive_pupil_message (Recorder  *recorder,
 	if (!more)
 	{
 		g_warning ("A Pupil message must be in two parts. Only one part received.");
-		return FALSE;
+		return TRUE;
 	}
 
-	*data = receive_msgpack_data (recorder->subscriber);
+	read_msgpack_data (recorder);
 
 	/* Determine if more message parts are to follow.
 	 * There must be exactly two parts. If there are more, it's an error.
@@ -439,6 +439,8 @@ receive_pupil_message (Recorder  *recorder,
 	g_return_val_if_fail (ok == 0, FALSE);
 	if (more)
 	{
+		g_warning ("A Pupil message must be in two parts. More than two parts received.");
+
 		/* Flush queue, to not receive those parts the next time this
 		 * function is called.
 		 */
@@ -452,9 +454,6 @@ receive_pupil_message (Recorder  *recorder,
 			ok = zmq_getsockopt (recorder->subscriber, ZMQ_RCVMORE, &more, &more_size);
 			g_return_val_if_fail (ok == 0, FALSE);
 		}
-
-		g_warning ("A Pupil message must be in two parts. More than two parts received.");
-		return FALSE;
 	}
 
 	return TRUE;
@@ -463,29 +462,8 @@ receive_pupil_message (Recorder  *recorder,
 static void
 read_all_pupil_messages (Recorder *recorder)
 {
-	/* Continue */
-	gboolean cont = TRUE;
-
-	while (cont)
-	{
-		char *topic = NULL;
-		char *data = NULL;
-
-		if (!receive_pupil_message (recorder, &topic, &data))
-		{
-			cont = FALSE;
-			goto end;
-		}
-
-		if (DEBUG)
-		{
-			g_print ("%s: %s\n", topic, data);
-		}
-
-end:
-		g_free (topic);
-		g_free (data);
-	}
+	while (read_pupil_message (recorder))
+		;
 }
 
 static char *
