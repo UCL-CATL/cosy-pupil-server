@@ -25,8 +25,8 @@ You don't need to install those dependencies, it's installed with the Docker
 container. The list is just for documentation purposes.
 
 - [ZeroMQ](http://zeromq.org/)
+- [msgpack](http://msgpack.org/)
 - [GLib](https://wiki.gnome.org/Projects/GLib)
-- [JSON-GLib](https://wiki.gnome.org/Projects/JsonGlib)
 
 Build the container image
 -------------------------

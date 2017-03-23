@@ -6,8 +6,7 @@ MAINTAINER Sébastien Wilmet
 RUN dnf -y install \
 		zeromq-devel \
 		czmq-devel \
-		glib2-devel \
-		json-glib-devel && \
+		glib2-devel && \
 	dnf clean all
 
 ADD . /root/cosy-pupil-server
