@@ -303,25 +303,26 @@ data_new (void)
 static void
 read_msgpack_data (Recorder *recorder)
 {
-	zmq_msg_t msg;
+	zmq_msg_t zeromq_msg;
 	int n_bytes;
 	int ok;
 	void *raw_data;
 	msgpack_unpacker *unpacker;
 	msgpack_unpacked unpacked;
+	gboolean unpacked_is_init = FALSE;
 	msgpack_unpack_return unpack_ret;
 	msgpack_object obj;
 
-	ok = zmq_msg_init (&msg);
+	ok = zmq_msg_init (&zeromq_msg);
 	g_return_if_fail (ok == 0);
 
-	n_bytes = zmq_msg_recv (&msg, recorder->subscriber, 0);
+	n_bytes = zmq_msg_recv (&zeromq_msg, recorder->subscriber, 0);
 	if (n_bytes <= 0)
 	{
 		goto out;
 	}
 
-	raw_data = zmq_msg_data (&msg);
+	raw_data = zmq_msg_data (&zeromq_msg);
 
 	unpacker = msgpack_unpacker_new (1024);
 	if (unpacker == NULL)
@@ -345,12 +346,13 @@ read_msgpack_data (Recorder *recorder)
 	msgpack_unpacker_buffer_consumed (unpacker, n_bytes);
 
 	msgpack_unpacked_init (&unpacked);
+	unpacked_is_init = TRUE;
+
 	unpack_ret = msgpack_unpacker_next (unpacker, &unpacked);
 	if (unpack_ret != MSGPACK_UNPACK_SUCCESS)
 	{
 		g_warning ("msgpack: unpacking failed. The Pupil message "
 			   "received was apparently not packed with msgpack.");
-		msgpack_unpacked_destroy (&unpacked);
 		goto out;
 	}
 
@@ -381,15 +383,18 @@ read_msgpack_data (Recorder *recorder)
 			   obj.type);
 	}
 
-	msgpack_unpacked_destroy (&unpacked);
-
 out:
 	if (unpacker != NULL)
 	{
 		msgpack_unpacker_free (unpacker);
 	}
 
-	ok = zmq_msg_close (&msg);
+	if (unpacked_is_init)
+	{
+		msgpack_unpacked_destroy (&unpacked);
+	}
+
+	ok = zmq_msg_close (&zeromq_msg);
 	g_return_if_fail (ok == 0);
 }
 
