@@ -1,0 +1,47 @@
+pupil.0
+{
+	"confidence"=>0.000000,
+	"model_confidence"=>0.000000,
+	"topic"=>"pupil",
+	"theta"=>0,
+	"projected_sphere"=>{"angle"=>90.000000, "center"=>[0, 0], "axes"=>[0, 0]},
+	"model_id"=>1,
+	"model_birth_timestamp"=>-1.000000,
+	"ellipse"=>{"center"=>[320.000000, 240.000000], "angle"=>90.000000, "axes"=>[0.000000, 0.000000]},
+	"phi"=>0,
+	"method"=>"3d c++",
+	"id"=>0,
+	"diameter"=>0.000000,
+	"timestamp"=>16648.323954,
+	"sphere"=>{"center"=>[0.000000, -0.000000, 0.000000], "radius"=>0.000000},
+	"diameter_3d"=>0.000000,
+	"norm_pos"=>[0.500000, 0.500000],
+	"circle_3d"=>{"center"=>[0.000000, -0.000000, 0.000000], "normal"=>[0.000000, -0.000000, 0.000000], "radius"=>0.000000}
+}
+
+gaze
+{
+	"base_data"=>[{
+		"ellipse"=>{"angle"=>90.000000, "center"=>[320.000000, 240.000000], "axes"=>[0.000000, 0.000000]},
+		"circle_3d"=>{"center"=>[0.000000, -0.000000, 0.000000], "radius"=>0.000000, "normal"=>[0.000000, -0.000000, 0.000000]},
+		"diameter_3d"=>0.000000,
+		"model_confidence"=>0.606331,
+		"model_id"=>1,
+		"phi"=>0,
+		"model_birth_timestamp"=>3626.965818,
+		"norm_pos"=>[0.500000, 0.500000],
+		"projected_sphere"=>{"angle"=>90.000000, "center"=>[369.748927, 145.674356], "axes"=>[160.503129, 160.503129]},
+		"sphere"=>{"center"=>[7.438947, -14.104494, 92.708473], "radius"=>12.000000},
+		"id"=>0,
+		"method"=>"3d c++",
+		"timestamp"=>4135.300038,
+		"topic"=>"pupil",
+		"theta"=>0,
+		"confidence"=>0.000000,
+		"diameter"=>0.000000
+	}],
+	"topic"=>"gaze",
+	"confidence"=>0.000000,
+	"norm_pos"=>[0.500000, 0.500000],
+	"timestamp"=>4135.300038
+}
