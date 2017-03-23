@@ -336,7 +336,7 @@ receive_msgpack_data (void *subscriber)
 		result = msgpack_unpacker_reserve_buffer (unpacker, n_bytes);
 		if (!result)
 		{
-			g_warning ("Memory allocation error with msgpack.");
+			g_warning ("msgpack: memory allocation error.");
 			goto out;
 		}
 	}
@@ -348,7 +348,8 @@ receive_msgpack_data (void *subscriber)
 	unpack_ret = msgpack_unpacker_next (unpacker, &unpacked);
 	if (unpack_ret != MSGPACK_UNPACK_SUCCESS)
 	{
-		g_warning ("Unpacking failed.");
+		g_warning ("msgpack: unpacking failed. The Pupil message "
+			   "received was apparently not packed with msgpack.");
 		msgpack_unpacked_destroy (&unpacked);
 		goto out;
 	}
@@ -372,7 +373,8 @@ receive_msgpack_data (void *subscriber)
 	}
 	else
 	{
-		g_warning ("The unpacked data has another type. type=%d", obj.type);
+		g_warning ("msgpack: the unpacked data has another type. type=%d",
+			   obj.type);
 	}
 
 	msgpack_unpacked_destroy (&unpacked);
