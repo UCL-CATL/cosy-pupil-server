@@ -292,13 +292,111 @@ recorder_finalize (Recorder *recorder)
 	}
 }
 
-#if 0
 static Data *
 data_new (void)
 {
-	return g_new0 (Data, 1);
+	Data *data;
+
+	data = g_new (Data, 1);
+
+	data->timestamp = -1;
+	data->gaze_confidence = -1;
+	data->gaze_norm_pos_x = -1;
+	data->gaze_norm_pos_y = -1;
+	data->pupil_confidence = -1;
+	data->pupil_diameter_px = -1;
+
+	return data;
 }
-#endif
+
+/* Returns whether something has been extracted. */
+static gboolean
+extract_info_from_msgpack_key_value (Data              *data,
+				     msgpack_object_kv *key_value)
+{
+	msgpack_object *key;
+	msgpack_object *value;
+	msgpack_object_str *key_str;
+
+	key = &key_value->key;
+	value = &key_value->val;
+
+	if (key->type != MSGPACK_OBJECT_STR)
+	{
+		g_warning ("msgpack: expected a string for the key in a key_value pair, got type=%d instead.",
+			   key->type);
+		return FALSE;
+	}
+
+	key_str = &key->via.str;
+	if (key_str->ptr == NULL)
+	{
+		return FALSE;
+	}
+
+	if (strncmp (key_str->ptr, "timestamp", key_str->size) == 0)
+	{
+		if (value->type != MSGPACK_OBJECT_FLOAT)
+		{
+			g_warning ("msgpack: expected a float for the timestamp value, got type=%d instead.",
+				   value->type);
+			return FALSE;
+		}
+
+		data->timestamp = value->via.f64;
+
+		if (DEBUG)
+		{
+			g_print ("Extracted timestamp: %lf\n", data->timestamp);
+		}
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+static void
+extract_info_from_msgpack_root_object (Recorder       *recorder,
+				       msgpack_object *obj)
+{
+	msgpack_object_map *map;
+	Data *data;
+	uint32_t kv_num;
+	gboolean something_extracted = FALSE;
+
+	if (obj->type != MSGPACK_OBJECT_MAP)
+	{
+		g_warning ("msgpack: expected a map for the root object, got type=%d instead.",
+			   obj->type);
+		return;
+	}
+
+	map = &obj->via.map;
+
+	data = data_new ();
+
+	for (kv_num = 0; kv_num < map->size; kv_num++)
+	{
+		msgpack_object_kv *key_value;
+
+		key_value = &map->ptr[kv_num];
+
+		if (extract_info_from_msgpack_key_value (data, key_value))
+		{
+			something_extracted = TRUE;
+		}
+	}
+
+	if (something_extracted)
+	{
+		g_queue_push_tail (recorder->data_queue, data);
+	}
+	else
+	{
+		g_free (data);
+	}
+}
 
 static void
 read_msgpack_data (Recorder *recorder)
@@ -365,23 +463,7 @@ read_msgpack_data (Recorder *recorder)
 		g_print ("\n");
 	}
 
-	if (obj.type == MSGPACK_OBJECT_STR)
-	{
-		char *unpacked_str;
-
-		unpacked_str = g_strndup (obj.via.str.ptr, obj.via.str.size);
-		g_print ("msgpack string: %s\n", unpacked_str);
-	}
-	else if (obj.type == MSGPACK_OBJECT_MAP)
-	{
-		/* TODO */
-		g_print ("msgpack map\n");
-	}
-	else
-	{
-		g_warning ("msgpack: the unpacked data has another type. type=%d",
-			   obj.type);
-	}
+	extract_info_from_msgpack_root_object (recorder, &obj);
 
 out:
 	if (unpacker != NULL)
