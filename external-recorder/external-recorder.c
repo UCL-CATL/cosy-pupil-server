@@ -300,7 +300,7 @@ data_new (void)
 
 /* Free the return value with g_free(). */
 static char *
-receive_json_data (void *subscriber)
+receive_msgpack_data (void *subscriber)
 {
 	zmq_msg_t msg;
 	int n_bytes;
@@ -393,24 +393,24 @@ out:
 	return unpacked_str;
 }
 
-/* Receive a Pupil message from the Pupil Broadcast Server plugin.
+/* Receives a Pupil message from the subscriber.
  * It must be a multi-part message, with exactly two parts: the topic and the
- * JSON data.
+ * msgpack data.
  * If successful, TRUE is returned.
- * Regardless of the return value, you need to free *topic and *json_data when
- * no longer needed.
+ * Regardless of the return value, you need to free *topic and *data when no
+ * longer needed.
  */
 static gboolean
 receive_pupil_message (Recorder  *recorder,
 		       char     **topic,
-		       char     **json_data)
+		       char     **data)
 {
 	int64_t more;
 	size_t more_size = sizeof (more);
 	int ok;
 
 	g_return_val_if_fail (topic != NULL && *topic == NULL, FALSE);
-	g_return_val_if_fail (json_data != NULL && *json_data == NULL, FALSE);
+	g_return_val_if_fail (data != NULL && *data == NULL, FALSE);
 
 	*topic = receive_next_message (recorder->subscriber);
 	if (*topic == NULL)
@@ -428,7 +428,7 @@ receive_pupil_message (Recorder  *recorder,
 		return FALSE;
 	}
 
-	*json_data = receive_json_data (recorder->subscriber);
+	*data = receive_msgpack_data (recorder->subscriber);
 
 	/* Determine if more message parts are to follow.
 	 * There must be exactly two parts. If there are more, it's an error.
@@ -467,9 +467,9 @@ read_all_pupil_messages (Recorder *recorder)
 	while (cont)
 	{
 		char *topic = NULL;
-		char *json_data = NULL;
+		char *data = NULL;
 
-		if (!receive_pupil_message (recorder, &topic, &json_data))
+		if (!receive_pupil_message (recorder, &topic, &data))
 		{
 			cont = FALSE;
 			goto end;
@@ -477,20 +477,12 @@ read_all_pupil_messages (Recorder *recorder)
 
 		if (DEBUG)
 		{
-			g_print ("%s: %s\n", topic, json_data);
-		}
-
-		if (!recorder->record)
-		{
-			/* Flush the queue of messages, to not get them when the
-			 * recording starts.
-			 */
-			goto end;
+			g_print ("%s: %s\n", topic, data);
 		}
 
 end:
 		g_free (topic);
-		g_free (json_data);
+		g_free (data);
 	}
 }
 
