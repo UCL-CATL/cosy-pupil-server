@@ -629,6 +629,13 @@ recorder_start (Recorder *recorder)
 	char *reply_pupil_remote;
 	char *reply;
 
+	if (recorder->recording)
+	{
+		g_warning ("Already recording.");
+		reply = g_strdup ("already recording");
+		return reply;
+	}
+
 	g_print ("Send request to start recording to the Pupil Remote plugin...\n");
 	recorder->recording = TRUE;
 
@@ -666,6 +673,13 @@ recorder_stop (Recorder *recorder)
 	const char *request_pupil_remote;
 	char *reply_pupil_remote;
 	char *reply;
+
+	if (!recorder->recording)
+	{
+		g_warning ("Already stopped.");
+		reply = g_strdup ("already stopped");
+		return reply;
+	}
 
 	g_print ("Send request to stop recording to the Pupil Remote plugin...\n");
 
@@ -759,7 +773,7 @@ read_request (Recorder *recorder)
 		/* It's fine to send big messages with ZeroMQ. In our case, if
 		 * the recording lasts 2 minutes, the data should be below 1MB.
 		 * ZeroMQ supports data blobs from zero to gigabytes large (as
-		 * soon as there is enough RAM on both sides). So 1MB should be
+		 * long as there is enough RAM on both sides). So 1MB should be
 		 * fingers in the nose.
 		 */
 		reply = receive_data (recorder);
