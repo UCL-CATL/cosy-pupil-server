@@ -344,12 +344,30 @@ extract_info_from_msgpack_key_value (Data              *data,
 		}
 
 		data->timestamp = value->via.f64;
-
-		if (DEBUG)
+		return TRUE;
+	}
+	else if (strncmp (key_str->ptr, "diameter", key_str->size) == 0)
+	{
+		if (value->type != MSGPACK_OBJECT_FLOAT)
 		{
-			g_print ("Extracted timestamp: %lf\n", data->timestamp);
+			g_warning ("msgpack: expected a float for the diameter value, got type=%d instead.",
+				   value->type);
+			return FALSE;
 		}
 
+		data->pupil_diameter_px = value->via.f64;
+		return TRUE;
+	}
+	else if (strncmp (key_str->ptr, "confidence", key_str->size) == 0)
+	{
+		if (value->type != MSGPACK_OBJECT_FLOAT)
+		{
+			g_warning ("msgpack: expected a float for the confidence value, got type=%d instead.",
+				   value->type);
+			return FALSE;
+		}
+
+		data->pupil_confidence = value->via.f64;
 		return TRUE;
 	}
 
@@ -391,6 +409,14 @@ extract_info_from_msgpack_root_object (Recorder       *recorder,
 	if (something_extracted)
 	{
 		g_queue_push_tail (recorder->data_queue, data);
+
+		if (DEBUG)
+		{
+			g_print ("Extracted content: timestamp=%lf, diameter=%lf, confidence=%lf\n",
+				 data->timestamp,
+				 data->pupil_diameter_px,
+				 data->pupil_confidence);
+		}
 	}
 	else
 	{
