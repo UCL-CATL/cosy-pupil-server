@@ -1,3 +1,10 @@
+News in 2.0, 2017-mm-dd
+-----------------------
+* Port to Pupil Capture version 0.9.3.
+* Instead of JSON-GLib, msgpack needs to be used now.
+* Make the code more robust.
+* Print more details in case of error.
+
 News in 1.1, 2017-02-23
 -----------------------
 * Docker: update container to Fedora 24 and use cosy-docker-layer.
