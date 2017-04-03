@@ -35,11 +35,10 @@ typedef struct _Data Data;
 struct _Data
 {
 	double timestamp;
-	double gaze_confidence;
+	double pupil_diameter;
 	double gaze_norm_pos_x;
 	double gaze_norm_pos_y;
-	double pupil_confidence;
-	double pupil_diameter_px;
+	double confidence;
 };
 
 typedef struct _Recorder Recorder;
@@ -299,12 +298,11 @@ data_new (void)
 
 	data = g_new (Data, 1);
 
-	data->timestamp = -1;
-	data->gaze_confidence = -1;
-	data->gaze_norm_pos_x = -1;
-	data->gaze_norm_pos_y = -1;
-	data->pupil_confidence = -1;
-	data->pupil_diameter_px = -1;
+	data->timestamp = -1.0;
+	data->pupil_diameter = -1.0;
+	data->gaze_norm_pos_x = -1.0;
+	data->gaze_norm_pos_y = -1.0;
+	data->confidence = -1.0;
 
 	return data;
 }
@@ -355,7 +353,7 @@ extract_info_from_msgpack_key_value (Data              *data,
 			return FALSE;
 		}
 
-		data->pupil_diameter_px = value->via.f64;
+		data->pupil_diameter = value->via.f64;
 		return TRUE;
 	}
 	else if (strncmp (key_str->ptr, "confidence", key_str->size) == 0)
@@ -367,7 +365,7 @@ extract_info_from_msgpack_key_value (Data              *data,
 			return FALSE;
 		}
 
-		data->pupil_confidence = value->via.f64;
+		data->confidence = value->via.f64;
 		return TRUE;
 	}
 
@@ -414,8 +412,8 @@ extract_info_from_msgpack_root_object (Recorder       *recorder,
 		{
 			g_print ("Extracted content: timestamp=%lf, diameter=%lf, confidence=%lf\n",
 				 data->timestamp,
-				 data->pupil_diameter_px,
-				 data->pupil_confidence);
+				 data->pupil_diameter,
+				 data->confidence);
 		}
 	}
 	else
@@ -675,17 +673,15 @@ receive_data (Recorder *recorder)
 
 		g_string_append_printf (str,
 					"timestamp:%lf\n"
-					"gaze_confidence:%lf\n"
+					"pupil_diameter:%lf\n"
 					"gaze_norm_pos_x:%lf\n"
 					"gaze_norm_pos_y:%lf\n"
-					"pupil_confidence:%lf\n"
-					"pupil_diameter_px:%lf\n",
+					"confidence:%lf\n",
 					data->timestamp,
-					data->gaze_confidence,
+					data->pupil_diameter,
 					data->gaze_norm_pos_x,
 					data->gaze_norm_pos_y,
-					data->pupil_confidence,
-					data->pupil_diameter_px);
+					data->confidence);
 	}
 
 	return g_string_free (str, FALSE);
