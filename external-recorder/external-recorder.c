@@ -321,7 +321,8 @@ extract_info_from_msgpack_key_value (Data              *data,
 
 	if (key->type != MSGPACK_OBJECT_STR)
 	{
-		g_warning ("msgpack: expected a string for the key in a key_value pair, got type=%d instead.",
+		g_warning ("msgpack: expected a string for the key in a key_value pair, "
+			   "got type=%d instead.",
 			   key->type);
 		return FALSE;
 	}
@@ -336,7 +337,8 @@ extract_info_from_msgpack_key_value (Data              *data,
 	{
 		if (value->type != MSGPACK_OBJECT_FLOAT)
 		{
-			g_warning ("msgpack: expected a float for the timestamp value, got type=%d instead.",
+			g_warning ("msgpack: expected a float for the timestamp value, "
+				   "got type=%d instead.",
 				   value->type);
 			return FALSE;
 		}
@@ -348,7 +350,8 @@ extract_info_from_msgpack_key_value (Data              *data,
 	{
 		if (value->type != MSGPACK_OBJECT_FLOAT)
 		{
-			g_warning ("msgpack: expected a float for the diameter value, got type=%d instead.",
+			g_warning ("msgpack: expected a float for the diameter value, "
+				   "got type=%d instead.",
 				   value->type);
 			return FALSE;
 		}
@@ -360,12 +363,55 @@ extract_info_from_msgpack_key_value (Data              *data,
 	{
 		if (value->type != MSGPACK_OBJECT_FLOAT)
 		{
-			g_warning ("msgpack: expected a float for the confidence value, got type=%d instead.",
+			g_warning ("msgpack: expected a float for the confidence value, "
+				   "got type=%d instead.",
 				   value->type);
 			return FALSE;
 		}
 
 		data->confidence = value->via.f64;
+		return TRUE;
+	}
+	else if (strncmp (key_str->ptr, "norm_pos", key_str->size) == 0)
+	{
+		msgpack_object_array *array;
+		msgpack_object *first_element;
+		msgpack_object *second_element;
+
+		if (value->type != MSGPACK_OBJECT_ARRAY)
+		{
+			g_warning ("msgpack: expected an array for the norm_pos value, "
+				   "got type=%d instead.",
+				   value->type);
+			return FALSE;
+		}
+
+		array = &value->via.array;
+
+		if (array->size != 2)
+		{
+			g_warning ("msgpack: expected 2 elements in the norm_pos array, "
+				   "got %d elements instead.",
+				   array->size);
+			return FALSE;
+		}
+
+		first_element = &array->ptr[0];
+		second_element = &array->ptr[1];
+
+		if (first_element->type != MSGPACK_OBJECT_FLOAT ||
+		    second_element->type != MSGPACK_OBJECT_FLOAT)
+		{
+			g_warning ("msgpack: expected float elements in the norm_pos array, "
+				   "got types %d and %d instead.",
+				   first_element->type,
+				   second_element->type);
+			return FALSE;
+		}
+
+		data->gaze_norm_pos_x = first_element->via.f64;
+		data->gaze_norm_pos_y = second_element->via.f64;
+
 		return TRUE;
 	}
 
@@ -410,10 +456,12 @@ extract_info_from_msgpack_root_object (Recorder       *recorder,
 
 		if (DEBUG)
 		{
-			g_print ("Extracted content: timestamp=%lf, diameter=%lf, confidence=%lf\n",
+			g_print ("Extracted content: timestamp=%lf, diameter=%lf, confidence=%lf, x=%lf, y=%lf\n",
 				 data->timestamp,
 				 data->pupil_diameter,
-				 data->confidence);
+				 data->confidence,
+				 data->gaze_norm_pos_x,
+				 data->gaze_norm_pos_y);
 		}
 	}
 	else
