@@ -459,19 +459,22 @@ extract_info_from_msgpack_root_object (Recorder       *recorder,
 
 	if (something_extracted)
 	{
-		g_queue_push_tail (recorder->data_queue, data);
-
-		g_print ("Extracted content: timestamp=%lf, diameter=%lf, confidence=%lf, x=%lf, y=%lf\n",
+		g_print ("%stimestamp=%lf, diameter=%lf, confidence=%lf, x=%lf, y=%lf\n",
+			 recorder->recording ? "[Recording] " : "",
 			 data->timestamp,
 			 data->pupil_diameter,
 			 data->confidence,
 			 data->gaze_norm_pos_x,
 			 data->gaze_norm_pos_y);
+
+		if (recorder->recording)
+		{
+			g_queue_push_tail (recorder->data_queue, data);
+			data = NULL;
+		}
 	}
-	else
-	{
-		g_free (data);
-	}
+
+	g_free (data);
 }
 
 static void
