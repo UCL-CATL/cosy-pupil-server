@@ -67,6 +67,13 @@ struct _Recorder
 	guint recording : 1;
 };
 
+typedef enum
+{
+	TOPIC_PUPIL,
+	TOPIC_GAZE,
+	TOPIC_OTHER
+} Topic;
+
 /* Receives the next zmq message part as a string.
  * Free the return value with g_free() when no longer needed.
  */
@@ -549,6 +556,27 @@ out:
 	g_return_if_fail (ok == 0);
 }
 
+static Topic
+determine_topic (const char *topic_str)
+{
+	if (topic_str == NULL)
+	{
+		return TOPIC_OTHER;
+	}
+
+	if (g_str_has_prefix (topic_str, "pupil"))
+	{
+		return TOPIC_PUPIL;
+	}
+
+	if (g_str_has_prefix (topic_str, "gaze"))
+	{
+		return TOPIC_GAZE;
+	}
+
+	return TOPIC_OTHER;
+}
+
 /* Reads a Pupil message from the subscriber.
  * It must be a multi-part message, with exactly two parts: the topic and the
  * msgpack data.
@@ -557,13 +585,14 @@ out:
 static gboolean
 read_pupil_message (Recorder *recorder)
 {
-	char *topic;
+	char *topic_str;
+	Topic topic;
 	int64_t more;
 	size_t more_size = sizeof (more);
 	int ok;
 
-	topic = receive_next_message (recorder->subscriber);
-	if (topic == NULL)
+	topic_str = receive_next_message (recorder->subscriber);
+	if (topic_str == NULL)
 	{
 		/* Timeout, no messages. */
 		return FALSE;
@@ -571,11 +600,20 @@ read_pupil_message (Recorder *recorder)
 
 	if (DEBUG)
 	{
-		g_print ("Topic: %s\n", topic);
+		g_print ("Topic: %s\n", topic_str);
 	}
 
-	g_free (topic);
-	topic = NULL;
+	topic = determine_topic (topic_str);
+
+	if (topic != TOPIC_PUPIL && !DEBUG)
+	{
+		g_warning ("I'm not supposed to receive other topics than with the 'pupil' prefix. "
+			   "Topic received: '%s'",
+			   topic_str);
+	}
+
+	g_free (topic_str);
+	topic_str = NULL;
 
 	/* Determine if more message parts are to follow. */
 	ok = zmq_getsockopt (recorder->subscriber, ZMQ_RCVMORE, &more, &more_size);
@@ -586,7 +624,17 @@ read_pupil_message (Recorder *recorder)
 		return TRUE;
 	}
 
-	read_msgpack_data (recorder);
+	if (topic == TOPIC_PUPIL)
+	{
+		read_msgpack_data (recorder);
+	}
+	else
+	{
+		char *msg;
+
+		msg = receive_next_message (recorder->subscriber);
+		g_free (msg);
+	}
 
 	/* Determine if more message parts are to follow.
 	 * There must be exactly two parts. If there are more, it's an error.
