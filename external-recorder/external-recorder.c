@@ -64,7 +64,7 @@ struct _Recorder
 
 	GTimer *timer;
 
-	guint record : 1;
+	guint recording : 1;
 };
 
 /* Receives the next zmq message part as a string.
@@ -261,7 +261,7 @@ recorder_init (Recorder *recorder)
 
 	recorder->data_queue = g_queue_new ();
 	recorder->timer = NULL;
-	recorder->record = FALSE;
+	recorder->recording = FALSE;
 
 	g_print ("Initialized successfully.\n\n");
 }
@@ -630,7 +630,7 @@ recorder_start (Recorder *recorder)
 	char *reply;
 
 	g_print ("Send request to start recording to the Pupil Remote plugin...\n");
-	recorder->record = TRUE;
+	recorder->recording = TRUE;
 
 	request_pupil_remote = "R";
 	zmq_send (recorder->pupil_remote,
@@ -694,7 +694,7 @@ recorder_stop (Recorder *recorder)
 	g_print ("Pupil Remote reply: %s\n", reply_pupil_remote);
 	g_free (reply_pupil_remote);
 
-	recorder->record = FALSE;
+	recorder->recording = FALSE;
 
 	return reply;
 }
