@@ -1,3 +1,5 @@
-News in 2.0, 2016-mm-dd
+News in 1.1, 2017-02-23
 -----------------------
-* Update Docker container to Fedora 24
+* Docker: update container to Fedora 24 and use cosy-docker-layer.
+* Small code improvements
+* Still for Pupil Capture version 0.7.6
