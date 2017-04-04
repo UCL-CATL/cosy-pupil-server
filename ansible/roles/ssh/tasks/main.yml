@@ -1,0 +1,6 @@
+---
+- name: disable ssh password authentication
+  script: configure-sshd.sh
+
+# It would be better to restore the old keys, but I'm the only person using ssh
+# on the server, so when the key has changed I know it.
