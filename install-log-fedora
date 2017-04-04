@@ -24,3 +24,6 @@ OS post-install
 
 # dnf upgrade
 reboot
+
+# systemctl start sshd
+# systemctl enable sshd
