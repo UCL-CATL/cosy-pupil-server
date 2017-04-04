@@ -1,0 +1,7 @@
+---
+- name: general tasks after Fedora Xfce install
+  hosts: catl-test
+  remote_user: root
+
+  roles:
+  - general
