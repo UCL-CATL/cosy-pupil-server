@@ -1,0 +1,17 @@
+Pupil install on Fedora 25
+==========================
+
+Install Fedora 25 spin Xfce. Xfce is a more stable desktop than gnome-shell.
+
+Disk partitions
+---------------
+
+- /dev/sda1 50 GiB XFS mounted on /
+- /dev/sda2 5 GiB swap
+- /dev/sda3 [rest of the disk] XFS mounted on /home
+
+OS post-install
+---------------
+
+# dnf upgrade
+reboot
