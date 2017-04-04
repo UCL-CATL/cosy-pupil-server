@@ -8,3 +8,6 @@
 
 - name: ping
   ping:
+
+- name: install some packages
+  dnf: name=htop,vim,gnome-terminal,gedit state=present
