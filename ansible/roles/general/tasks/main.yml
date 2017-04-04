@@ -10,4 +10,4 @@
   ping:
 
 - name: install some packages
-  dnf: name=htop,vim,gnome-terminal,gedit state=present
+  dnf: name=htop,vim,gnome-terminal,gedit,git state=present

@@ -6,4 +6,11 @@
   roles:
   #- ssh
   #- general
-  - docker
+  #- docker
+
+- name: clone pupil-related git repos
+  hosts: catl-test
+  remote_user: user
+
+  roles:
+  - pupil
