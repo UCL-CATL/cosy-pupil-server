@@ -1,0 +1,9 @@
+---
+- name: install docker
+  dnf: name=docker state=present
+
+- name: configure docker storage
+  script: configure-docker-storage.sh
+
+- name: restart docker service
+  service: name=docker state=restarted enabled=yes
