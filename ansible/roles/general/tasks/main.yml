@@ -1,0 +1,10 @@
+---
+- name: disable selinux
+  selinux: state=disabled
+  notify:
+  - reboot
+  - wait for server to come back
+- meta: flush_handlers
+
+- name: ping
+  ping:
