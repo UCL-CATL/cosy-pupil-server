@@ -3,6 +3,15 @@ Pupil install on Fedora 25
 
 Install Fedora 25 spin Xfce. Xfce is a more stable desktop than gnome-shell.
 
+The first Pupil installation was on CentOS, because CentOS is supported during
+10 years while Fedora is supported during only ~13 months. But a more recent
+graphics stack was needed to run the latest version of Pupil Capture. Maybe
+when CentOS 7.4 will be released it'll be possible to come back on CentOS.
+Anyway the computer is normally not connected on the network, it is connected
+only for doing the installation or doing updates, and a Linux system is anyway
+quite secure even if it is not up-to-date. Fedora has been chosen to stay in
+the same family of Linux distros (Red Hat family).
+
 Disk partitions
 ---------------
 
