@@ -1,12 +1,13 @@
 # https://github.com/UCL-CATL/cosy-docker-layer
-FROM ucl-cosy/cosy-docker-layer:24
+FROM ucl-cosy/cosy-docker-layer:25
 
 MAINTAINER Sébastien Wilmet
 
 RUN dnf -y install \
 		zeromq-devel \
 		czmq-devel \
-		glib2-devel && \
+		glib2-devel \
+		msgpack-devel && \
 	dnf clean all
 
 ADD . /root/cosy-pupil-server
