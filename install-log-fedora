@@ -29,3 +29,14 @@ reboot
 # systemctl enable sshd
 
 Run ansible playbook, see the ansible/README file.
+
+Pupil install
+-------------
+
+In the /home/user/repos/ directory the git repositories have been cloned.
+
+1. Install cosy-docker-layer
+2. Install docker-pupil
+3. Install cosy-pupil-server
+4. Install cosy-camera-recorder
+5. Run cosy-pupil-install/deploy.sh
