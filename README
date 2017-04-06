@@ -4,21 +4,18 @@ Pupil
 1. Run Pupil Capture
 --------------------
 
+In a terminal:
 $ sudo ./run-pupil.sh
-<enter password>
-We are then inside the Docker container. Launch the application:
-# python pupil_src/capture/main.py
 
-Enable Pupil Server and Pupil Remote plugins.
-FIXME: enable those plugins automatically.
+We are then inside the Docker container. Launch the application:
+# python3 pupil_src/capture/main.py
 
 2. Run cosy-pupil-server
 ------------------------
 
 In a new terminal:
-
 $ sudo ./run-cosy-pupil-server.sh
-<enter password>
+
 Inside the container:
 # ./external-recorder
 
