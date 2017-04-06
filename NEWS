@@ -1,12 +1,22 @@
-News in 2.0, 2017-mm-dd
+News in 2.0, 2017-04-06
 -----------------------
-* Port to Pupil Capture version 0.9.3.
-* Instead of JSON-GLib, msgpack needs to be used now.
+* Port the code to be compatible with Pupil Capture version 0.9.3.
+* Instead of JSON-GLib, msgpack is used to read the data coming from Pupil
+  Capture.
 * Make the code more robust.
 * Print more details in case of error.
+* Docker: update to Fedora 25.
 
 News in 1.1, 2017-02-23
 -----------------------
 * Docker: update container to Fedora 24 and use cosy-docker-layer.
 * Small code improvements
 * Still for Pupil Capture version 0.7.6
+
+News in 1.0, 2016-05-26
+-----------------------
+* First version used in production.
+* Implement an external-recorder program that acts as an intermediate between
+  Pupil Capture and Matlab, communicating with ZeroMQ.
+* For Pupil Capture 0.7.6.
+* Docker container based on Fedora 23.
