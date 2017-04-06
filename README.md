@@ -51,10 +51,10 @@ cosy-pupil-client talks only to the external-recorder with the Request-Reply
 ZeroMQ pattern. In our case cosy-pupil-client runs on another computer running
 a real-time Matlab program.
 
-The Pupil Server and Pupil Remote plugins need to be enabled in Pupil Capture.
-The Pupil Server publishes a stream of information with ZeroMQ, with the
-Publisher-Subscriber communication pattern. The external-recorder creates a
-subscriber and reads the messages.
+The Pupil Remote plugin needs to be enabled in Pupil Capture. Pupil Capture
+publishes a stream of information with ZeroMQ, with the Publisher-Subscriber
+communication pattern. The external-recorder creates a subscriber and reads the
+messages.
 
 The external-recorder sends requests to the Pupil Capture software, via the
 Pupil Remote plugin, to start and stop the recording (Pupil Capture records
