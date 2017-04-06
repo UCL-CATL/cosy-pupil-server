@@ -1,4 +1,5 @@
 ---
+# TODO use the lineinfile module instead.
 - name: disable ssh password authentication
   script: configure-sshd.sh
 

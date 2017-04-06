@@ -2,6 +2,7 @@
 - name: install docker
   dnf: name=docker state=present
 
+# TODO use the lineinfile module instead.
 - name: configure docker storage
   script: configure-docker-storage.sh
 
