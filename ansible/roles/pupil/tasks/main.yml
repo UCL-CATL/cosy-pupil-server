@@ -25,3 +25,7 @@
 - name: git clone cosy-pupil-client
   git: repo=https://github.com/UCL-CATL/cosy-pupil-client.git
        dest=~/repos/cosy-pupil-client
+
+- name: git clone cosy-pupil-install
+  git: repo=https://github.com/UCL-CATL/cosy-pupil-install.git
+       dest=~/repos/cosy-pupil-install
