@@ -11,3 +11,10 @@
 
 - name: install some packages
   dnf: name=htop,vim,gnome-terminal,gedit,git state=present
+
+- name: configure sudo
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '^%wheel\s'
+    line: '%wheel ALL=(ALL) NOPASSWD: ALL'

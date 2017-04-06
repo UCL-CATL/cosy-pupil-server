@@ -5,7 +5,7 @@
 
   roles:
   #- ssh
-  #- general
+  - general
   #- docker
 
 - name: clone pupil-related git repos
@@ -13,4 +13,4 @@
   remote_user: user
 
   roles:
-  - pupil
+  #- pupil
