@@ -38,5 +38,4 @@ Pupil
 	and might screw up your next experiment.
 
 	To kill all containers, you can execute:
-	$ sudo docker stop $(sudo docker ps -a -q)
-	$ sudo docker rm $(sudo docker ps -a -q)
+	$ ./kill-all-containers.sh
