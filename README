@@ -3,7 +3,15 @@ Pupil
 
 1. Connect the hardware.
 
-2. Run Pupil Capture:
+2. Ensure that no other Docker containers run:
+
+	In a new terminal:
+	$ ./kill-all-containers.sh
+
+	If a container from a previous experiment is not properly closed, it
+	can still run in the background and can screw up your new experiment.
+
+3. Run Pupil Capture:
 
 	In a new terminal:
 	$ ./run-pupil.sh
@@ -14,7 +22,7 @@ Pupil
 	Pupil documentation:
 	https://github.com/pupil-labs/pupil/wiki
 
-3. Run cosy-pupil-server:
+4. Run cosy-pupil-server:
 
 	In a new terminal:
 	$ ./run-cosy-pupil-server.sh
@@ -22,20 +30,17 @@ Pupil
 	Inside the container:
 	# ./external-recorder
 
-4. Do the calibration with Pupil Capture.
+5. Do the calibration with Pupil Capture.
 
-5. Run the experiment from Matlab (it's the client side).
+6. Run the experiment from Matlab (it's the client side).
 
-6. Close the programs properly:
+7. Close the programs:
 
 	- Close the main window of Pupil Capture (the one with the world camera).
 	- Exit the Pupil container with Ctrl+D or the "exit" command.
 	- Kill cosy-pupil-server with Ctrl+C.
 	- Exit the cosy-pupil-server container with Ctrl+D or the "exit" command.
 
-	You must exit the containers properly, not closing the terminal
-	directly, because otherwise the container still runs in the background
-	and might screw up your next experiment.
-
-	To kill all containers, you can execute:
-	$ ./kill-all-containers.sh
+	If the containers are not properly closed (if you close the terminal
+	window directly), the containers still run in the background, but they
+	would anyway be cleaned up with the kill-all-containers.sh script.
