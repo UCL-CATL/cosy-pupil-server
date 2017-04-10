@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# Run this script as root.
-# sudo ./run-pupil.sh
-
-touch /etc/resolv.conf
-/home/user/repos/docker-pupil/run.sh /home/user/pupil/recordings
-chown -R user:user /home/user/pupil
+sudo touch /etc/resolv.conf
+sudo /home/user/repos/docker-pupil/run.sh /home/user/pupil/recordings
+sudo chown -R user:user /home/user/pupil

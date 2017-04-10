@@ -6,7 +6,7 @@ Pupil
 2. Run Pupil Capture:
 
 	In a new terminal:
-	$ sudo ./run-pupil.sh
+	$ ./run-pupil.sh
 
 	We are then inside the Docker container. Launch the application:
 	# python3 pupil_src/capture/main.py
@@ -17,7 +17,7 @@ Pupil
 3. Run cosy-pupil-server:
 
 	In a new terminal:
-	$ sudo ./run-cosy-pupil-server.sh
+	$ ./run-cosy-pupil-server.sh
 
 	Inside the container:
 	# ./external-recorder
