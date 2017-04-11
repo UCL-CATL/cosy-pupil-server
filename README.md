@@ -10,6 +10,8 @@ This repository contains the “server” part. It runs on the same computer as 
 Pupil software. See the [cosy-pupil-client](https://github.com/UCL-CATL/cosy-pupil-client)
 repository for the client part.
 
+This program has been developed on GNU/Linux.
+
 The recommended way to use cosy-pupil-server is with a Docker container. A
 Dockerfile is provided, see the instructions below to know how to build and run
 the container.
