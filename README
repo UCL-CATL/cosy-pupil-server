@@ -20,7 +20,7 @@ Pupil
 	# python3 pupil_src/capture/main.py
 
 	Pupil documentation:
-	https://github.com/pupil-labs/pupil/wiki
+	https://docs.pupil-labs.com/
 
 4. Run cosy-pupil-server:
 
