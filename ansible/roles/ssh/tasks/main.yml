@@ -1,7 +1,9 @@
 ---
-# TODO use the lineinfile module instead.
 - name: disable ssh password authentication
-  script: configure-sshd.sh
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^PasswordAuthentication "
+    line: "PasswordAuthentication no"
 
 # It would be better to restore the old keys, but I'm the only person using ssh
 # on the server, so when the key has changed I know it.
