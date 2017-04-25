@@ -1,4 +1,6 @@
 ---
+# For security reasons it's better to disable password authentication. The
+# authentication can be done only with keys.
 - name: disable ssh password authentication
   lineinfile:
     dest: /etc/ssh/sshd_config

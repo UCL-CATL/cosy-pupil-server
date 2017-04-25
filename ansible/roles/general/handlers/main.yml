@@ -1,5 +1,5 @@
 ---
-# reboot and wait server to come back, recipe found at:
+# Reboot and wait server to come back, recipe found at:
 # https://github.com/ansible/ansible/issues/14413#issuecomment-257887580
 - name: reboot
   shell: sleep 2 && systemctl reboot

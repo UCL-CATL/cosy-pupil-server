@@ -10,6 +10,7 @@
   notify:
     - run docker-storage-setup
     - restart docker service
+# Wait that the notify tasks are finished.
 - meta: flush_handlers
 
 - name: configure docker service

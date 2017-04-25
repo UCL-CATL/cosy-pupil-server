@@ -1,9 +1,13 @@
 ---
+# SELinux is great when one knows it well. But I don't know it well, and it's
+# annoying to have SELinux desktop notifications (due to packaging problems in
+# the distro, most probably).
 - name: disable selinux
   selinux: state=disabled
   notify:
   - reboot
   - wait for server to come back
+# Wait that the notify tasks are finished.
 - meta: flush_handlers
 
 - name: ping
@@ -12,6 +16,11 @@
 - name: install some packages
   dnf: name=htop,vim,gnome-terminal,gedit,git state=present
 
+# Remove the need to type the password when using sudo.
+# For our installation, we don't care about the OS files, what is more
+# important is the user data. Since it's annoying to type the password each
+# time that a docker container needs to be launched (because docker can run
+# only as root), it's simpler to use sudo without passwords.
 - name: configure sudo
   lineinfile:
     dest: /etc/sudoers

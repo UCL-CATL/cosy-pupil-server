@@ -31,6 +31,8 @@
   git: repo=https://github.com/UCL-CATL/cosy-pupil-install.git
        dest=~/repos/cosy-pupil-install
 
+# We don't need those XDG directories, the only thing that they do is to make
+# it harder to find our data.
 - name: remove useless directories in home
   file: path=~/{{ item }} state=absent
   with_items:
