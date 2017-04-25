@@ -9,6 +9,7 @@
 - name: git clone docker-pupil
   git: repo=https://github.com/UCL-CATL/docker-pupil.git
        dest=~/repos/docker-pupil
+       version=better-settings
 
 - name: git clone cosy-pupil-server
   git: repo=https://github.com/UCL-CATL/cosy-pupil-server.git
