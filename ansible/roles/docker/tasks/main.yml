@@ -2,9 +2,15 @@
 - name: install docker
   dnf: name=docker state=present
 
-# TODO use the lineinfile module instead.
 - name: configure docker storage
-  script: configure-docker-storage.sh
+  lineinfile:
+    dest: /etc/sysconfig/docker-storage-setup
+    regexp: "^STORAGE_DRIVER="
+    line: "STORAGE_DRIVER=overlay"
+  notify:
+    - run docker-storage-setup
+    - restart docker service
+- meta: flush_handlers
 
-- name: restart docker service
-  service: name=docker state=restarted enabled=yes
+- name: configure docker service
+  service: name=docker state=started enabled=yes
