@@ -36,8 +36,19 @@ struct _Data
 {
 	double timestamp;
 	double pupil_diameter;
+
+	/* FIXME Apparently it's not the gaze position, it's the position of the
+	 * pupil in the eye camera image.
+	 * https://docs.pupil-labs.com/#looking-at-the-data
+	 *
+	 * To retrieve the gaze position we need to listen to the gaze topic.
+	 */
 	double gaze_norm_pos_x;
 	double gaze_norm_pos_y;
+
+	/* FIXME confidence of the pupil detection, no? Not the gaze.
+	 * Do we need two confidences, one for the pupil and one for the gaze?
+	 */
 	double confidence;
 };
 
