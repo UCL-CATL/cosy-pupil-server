@@ -1,7 +1,0 @@
-Pupil Fedora - Ansible
-======================
-
-After the Fedora installation:
-
-$ ./ssh-copy-id.sh
-$ ansible-playbook playbook.yml

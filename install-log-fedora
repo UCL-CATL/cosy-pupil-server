@@ -28,7 +28,7 @@ reboot
 # systemctl start sshd
 # systemctl enable sshd
 
-Run ansible playbook, see the ansible/README file.
+Run Ansible playbook from cosy-linux-automation.
 
 Pupil install
 -------------

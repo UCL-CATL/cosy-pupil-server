@@ -1,6 +1,0 @@
----
-- name: run docker-storage-setup
-  command: docker-storage-setup
-
-- name: restart docker service
-  service: name=docker state=restarted
