@@ -82,6 +82,11 @@ typedef enum
 	TOPIC_OTHER
 } Topic;
 
+/* Prototypes */
+static gboolean extract_info_from_msgpack_map (Data           *data,
+					       msgpack_object *obj,
+					       Topic           topic);
+
 /* Receives the next zmq message part as a string.
  * Free the return value with g_free() when no longer needed.
  */
@@ -193,11 +198,11 @@ init_subscriber (Recorder *recorder)
 		/* Receive all messages. */
 		/*filter = "";*/
 
-		filter = "pupil.";
+		filter = "gaze";
 	}
 	else
 	{
-		filter = "pupil.";
+		filter = "gaze";
 	}
 
 	ok = zmq_setsockopt (recorder->subscriber,
@@ -325,7 +330,8 @@ data_new (void)
 /* Returns whether something has been extracted. */
 static gboolean
 extract_info_from_msgpack_key_value (Data              *data,
-				     msgpack_object_kv *key_value)
+				     msgpack_object_kv *key_value,
+				     Topic              topic)
 {
 	msgpack_object *key;
 	msgpack_object *value;
@@ -344,6 +350,39 @@ extract_info_from_msgpack_key_value (Data              *data,
 
 	key_str = &key->via.str;
 	if (key_str->ptr == NULL)
+	{
+		return FALSE;
+	}
+
+	if (topic == TOPIC_GAZE &&
+	    strncmp (key_str->ptr, "base_data", key_str->size) == 0)
+	{
+		msgpack_object_array *array;
+		msgpack_object *element;
+
+		if (value->type != MSGPACK_OBJECT_ARRAY)
+		{
+			g_warning ("msgpack: expected an array for the base_data value, "
+				   "got type=%d instead.",
+				   value->type);
+			return FALSE;
+		}
+
+		array = &value->via.array;
+
+		if (array->size != 1)
+		{
+			g_warning ("msgpack: expected 1 element in the base_data array, "
+				   "got %d elements instead.",
+				   array->size);
+			return FALSE;
+		}
+
+		element = &array->ptr[0];
+		return extract_info_from_msgpack_map (data, element, TOPIC_PUPIL);
+	}
+
+	if (topic != TOPIC_PUPIL)
 	{
 		return FALSE;
 	}
@@ -433,25 +472,23 @@ extract_info_from_msgpack_key_value (Data              *data,
 	return FALSE;
 }
 
-static void
-extract_info_from_msgpack_root_object (Recorder       *recorder,
-				       msgpack_object *obj)
+static gboolean
+extract_info_from_msgpack_map (Data           *data,
+			       msgpack_object *obj,
+			       Topic           topic)
 {
 	msgpack_object_map *map;
-	Data *data;
 	uint32_t kv_num;
 	gboolean something_extracted = FALSE;
 
 	if (obj->type != MSGPACK_OBJECT_MAP)
 	{
-		g_warning ("msgpack: expected a map for the root object, got type=%d instead.",
+		g_warning ("msgpack: expected a map, got type=%d instead.",
 			   obj->type);
-		return;
+		return FALSE;
 	}
 
 	map = &obj->via.map;
-
-	data = data_new ();
 
 	for (kv_num = 0; kv_num < map->size; kv_num++)
 	{
@@ -459,11 +496,25 @@ extract_info_from_msgpack_root_object (Recorder       *recorder,
 
 		key_value = &map->ptr[kv_num];
 
-		if (extract_info_from_msgpack_key_value (data, key_value))
+		if (extract_info_from_msgpack_key_value (data, key_value, topic))
 		{
 			something_extracted = TRUE;
 		}
 	}
+
+	return something_extracted;
+}
+
+static void
+extract_info_from_msgpack_root_object (Recorder       *recorder,
+				       msgpack_object *obj)
+{
+	Data *data;
+	gboolean something_extracted;
+
+	data = data_new ();
+
+	something_extracted = extract_info_from_msgpack_map (data, obj, TOPIC_GAZE);
 
 	if (something_extracted)
 	{
@@ -575,14 +626,14 @@ determine_topic (const char *topic_str)
 		return TOPIC_OTHER;
 	}
 
-	if (g_str_has_prefix (topic_str, "pupil"))
-	{
-		return TOPIC_PUPIL;
-	}
-
 	if (g_str_has_prefix (topic_str, "gaze"))
 	{
 		return TOPIC_GAZE;
+	}
+
+	if (g_str_has_prefix (topic_str, "pupil"))
+	{
+		return TOPIC_PUPIL;
 	}
 
 	return TOPIC_OTHER;
@@ -616,9 +667,9 @@ read_pupil_message (Recorder *recorder)
 
 	topic = determine_topic (topic_str);
 
-	if (topic != TOPIC_PUPIL && !DEBUG)
+	if (topic != TOPIC_GAZE && !DEBUG)
 	{
-		g_warning ("I'm not supposed to receive other topics than with the 'pupil' prefix. "
+		g_warning ("I'm not supposed to receive other topics than with the 'gaze' prefix. "
 			   "Topic received: '%s'",
 			   topic_str);
 	}
@@ -635,7 +686,7 @@ read_pupil_message (Recorder *recorder)
 		return TRUE;
 	}
 
-	if (topic == TOPIC_PUPIL)
+	if (topic == TOPIC_GAZE)
 	{
 		read_msgpack_data (recorder);
 	}
