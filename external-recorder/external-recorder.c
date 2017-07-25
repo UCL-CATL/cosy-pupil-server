@@ -354,6 +354,44 @@ extract_info_from_msgpack_key_value (Data              *data,
 		return FALSE;
 	}
 
+	if (strncmp (key_str->ptr, "topic", key_str->size) == 0)
+	{
+		msgpack_object_str *str;
+		char *topic_str;
+
+		if (value->type != MSGPACK_OBJECT_STR)
+		{
+			g_warning ("msgpack: expected a string for the topic value, "
+				   "got type=%d instead.",
+				   value->type);
+			return FALSE;
+		}
+
+		str = &value->via.str;
+		topic_str = g_strndup (str->ptr, str->size);
+
+		/* Sanity checking */
+		if (topic == TOPIC_GAZE &&
+		    g_strcmp0 (topic_str, "gaze") != 0)
+		{
+			g_warning ("msgpack: expected gaze topic, "
+				   "got '%s' instead.",
+				   topic_str);
+		}
+		else if (topic == TOPIC_PUPIL &&
+			 g_strcmp0 (topic_str, "pupil") != 0)
+		{
+			g_warning ("msgpack: expected pupil topic, "
+				   "got '%s' instead.",
+				   topic_str);
+		}
+
+		g_free (topic_str);
+
+		/* Nothing was extracted into the @data struct. */
+		return FALSE;
+	}
+
 	if (topic == TOPIC_GAZE &&
 	    strncmp (key_str->ptr, "base_data", key_str->size) == 0)
 	{
