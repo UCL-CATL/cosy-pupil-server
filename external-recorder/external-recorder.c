@@ -583,13 +583,24 @@ extract_info_from_msgpack_root_object (Recorder       *recorder,
 
 	if (something_extracted)
 	{
-		g_print ("%stimestamp=%lf, diameter=%lf, pupil_confidence=%lf, x=%lf, y=%lf\n",
+		g_print ("%s"
+			 "timestamp=%.2lf, "
+			 "diameter=%.2lf, "
+			 "pupil_confidence=%.2lf, "
+			 "pupil_x=%.2lf, "
+			 "pupil_y=%.2lf, "
+			 "gaze_confidence=%.2lf, "
+			 "gaze_x=%.2lf, "
+			 "gaze_y=%.2lf\n",
 			 recorder->recording ? "[Recording] " : "",
 			 data->timestamp,
 			 data->pupil_diameter,
 			 data->pupil_confidence,
 			 data->pupil_norm_pos_x,
-			 data->pupil_norm_pos_y);
+			 data->pupil_norm_pos_y,
+			 data->gaze_confidence,
+			 data->gaze_norm_pos_x,
+			 data->gaze_norm_pos_y);
 
 		if (recorder->recording)
 		{
