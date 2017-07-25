@@ -405,12 +405,19 @@ extract_info_from_msgpack_key_value (Data              *data,
 
 		array = &value->via.array;
 
-		if (array->size != 1)
+		if (array->size == 0)
 		{
 			g_warning ("msgpack: expected 1 element in the base_data array, "
-				   "got %d elements instead.",
-				   array->size);
+				   "got 0 elements instead.");
 			return FALSE;
+		}
+
+		if (array->size > 1)
+		{
+			g_warning ("msgpack: expected 1 element in the base_data array, "
+				   "got %d elements instead. Only the first element "
+				   "will be taken into account.",
+				   array->size);
 		}
 
 		element = &array->ptr[0];
