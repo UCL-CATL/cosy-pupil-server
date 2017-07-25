@@ -41,12 +41,9 @@ struct _Data
 	double pupil_norm_pos_y;
 	double pupil_confidence;
 
-	/* TODO listen to the gaze topic as well. */
-#if 0
 	double gaze_norm_pos_x;
 	double gaze_norm_pos_y;
 	double gaze_confidence;
-#endif
 };
 
 typedef struct _Recorder Recorder;
@@ -420,12 +417,8 @@ extract_info_from_msgpack_key_value (Data              *data,
 		return extract_info_from_msgpack_map (data, element, TOPIC_PUPIL);
 	}
 
-	if (topic != TOPIC_PUPIL)
-	{
-		return FALSE;
-	}
-
-	if (strncmp (key_str->ptr, "timestamp", key_str->size) == 0)
+	if (topic == TOPIC_PUPIL &&
+	    strncmp (key_str->ptr, "timestamp", key_str->size) == 0)
 	{
 		if (value->type != MSGPACK_OBJECT_FLOAT)
 		{
@@ -438,7 +431,9 @@ extract_info_from_msgpack_key_value (Data              *data,
 		data->timestamp = value->via.f64;
 		return TRUE;
 	}
-	else if (strncmp (key_str->ptr, "diameter", key_str->size) == 0)
+
+	if (topic == TOPIC_PUPIL &&
+	    strncmp (key_str->ptr, "diameter", key_str->size) == 0)
 	{
 		if (value->type != MSGPACK_OBJECT_FLOAT)
 		{
@@ -451,7 +446,8 @@ extract_info_from_msgpack_key_value (Data              *data,
 		data->pupil_diameter = value->via.f64;
 		return TRUE;
 	}
-	else if (strncmp (key_str->ptr, "confidence", key_str->size) == 0)
+
+	if (strncmp (key_str->ptr, "confidence", key_str->size) == 0)
 	{
 		if (value->type != MSGPACK_OBJECT_FLOAT)
 		{
@@ -461,10 +457,26 @@ extract_info_from_msgpack_key_value (Data              *data,
 			return FALSE;
 		}
 
-		data->pupil_confidence = value->via.f64;
-		return TRUE;
+		switch (topic)
+		{
+			case TOPIC_PUPIL:
+				data->pupil_confidence = value->via.f64;
+				return TRUE;
+
+			case TOPIC_GAZE:
+				data->gaze_confidence = value->via.f64;
+				return TRUE;
+
+			case TOPIC_OTHER:
+			default:
+				g_warn_if_reached ();
+				break;
+		}
+
+		return FALSE;
 	}
-	else if (strncmp (key_str->ptr, "norm_pos", key_str->size) == 0)
+
+	if (strncmp (key_str->ptr, "norm_pos", key_str->size) == 0)
 	{
 		msgpack_object_array *array;
 		msgpack_object *first_element;
@@ -501,10 +513,25 @@ extract_info_from_msgpack_key_value (Data              *data,
 			return FALSE;
 		}
 
-		data->pupil_norm_pos_x = first_element->via.f64;
-		data->pupil_norm_pos_y = second_element->via.f64;
+		switch (topic)
+		{
+			case TOPIC_PUPIL:
+				data->pupil_norm_pos_x = first_element->via.f64;
+				data->pupil_norm_pos_y = second_element->via.f64;
+				return TRUE;
 
-		return TRUE;
+			case TOPIC_GAZE:
+				data->gaze_norm_pos_x = first_element->via.f64;
+				data->gaze_norm_pos_y = second_element->via.f64;
+				return TRUE;
+
+			case TOPIC_OTHER:
+			default:
+				g_warn_if_reached ();
+				break;
+		}
+
+		return FALSE;
 	}
 
 	return FALSE;
@@ -883,12 +910,18 @@ receive_data (Recorder *recorder)
 					"pupil_diameter:%lf\n"
 					"pupil_x:%lf\n"
 					"pupil_y:%lf\n"
-					"pupil_confidence:%lf\n",
+					"pupil_confidence:%lf\n"
+					"gaze_x:%lf\n"
+					"gaze_y:%lf\n"
+					"gaze_confidence:%lf\n",
 					data->timestamp,
 					data->pupil_diameter,
 					data->pupil_norm_pos_x,
 					data->pupil_norm_pos_y,
-					data->pupil_confidence);
+					data->pupil_confidence,
+					data->gaze_norm_pos_x,
+					data->gaze_norm_pos_y,
+					data->gaze_confidence);
 	}
 
 	return g_string_free (str, FALSE);
