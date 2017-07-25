@@ -37,19 +37,16 @@ struct _Data
 	double timestamp;
 	double pupil_diameter;
 
-	/* FIXME Apparently it's not the gaze position, it's the position of the
-	 * pupil in the eye camera image.
-	 * https://docs.pupil-labs.com/#looking-at-the-data
-	 *
-	 * To retrieve the gaze position we need to listen to the gaze topic.
-	 */
+	double pupil_norm_pos_x;
+	double pupil_norm_pos_y;
+	double pupil_confidence;
+
+	/* TODO listen to the gaze topic as well. */
+#if 0
 	double gaze_norm_pos_x;
 	double gaze_norm_pos_y;
-
-	/* FIXME confidence of the pupil detection, no? Not the gaze.
-	 * Do we need two confidences, one for the pupil and one for the gaze?
-	 */
-	double confidence;
+	double gaze_confidence;
+#endif
 };
 
 typedef struct _Recorder Recorder;
@@ -318,9 +315,9 @@ data_new (void)
 
 	data->timestamp = -1.0;
 	data->pupil_diameter = -1.0;
-	data->gaze_norm_pos_x = -1.0;
-	data->gaze_norm_pos_y = -1.0;
-	data->confidence = -1.0;
+	data->pupil_norm_pos_x = -1.0;
+	data->pupil_norm_pos_y = -1.0;
+	data->pupil_confidence = -1.0;
 
 	return data;
 }
@@ -387,7 +384,7 @@ extract_info_from_msgpack_key_value (Data              *data,
 			return FALSE;
 		}
 
-		data->confidence = value->via.f64;
+		data->pupil_confidence = value->via.f64;
 		return TRUE;
 	}
 	else if (strncmp (key_str->ptr, "norm_pos", key_str->size) == 0)
@@ -427,8 +424,8 @@ extract_info_from_msgpack_key_value (Data              *data,
 			return FALSE;
 		}
 
-		data->gaze_norm_pos_x = first_element->via.f64;
-		data->gaze_norm_pos_y = second_element->via.f64;
+		data->pupil_norm_pos_x = first_element->via.f64;
+		data->pupil_norm_pos_y = second_element->via.f64;
 
 		return TRUE;
 	}
@@ -470,13 +467,13 @@ extract_info_from_msgpack_root_object (Recorder       *recorder,
 
 	if (something_extracted)
 	{
-		g_print ("%stimestamp=%lf, diameter=%lf, confidence=%lf, x=%lf, y=%lf\n",
+		g_print ("%stimestamp=%lf, diameter=%lf, pupil_confidence=%lf, x=%lf, y=%lf\n",
 			 recorder->recording ? "[Recording] " : "",
 			 data->timestamp,
 			 data->pupil_diameter,
-			 data->confidence,
-			 data->gaze_norm_pos_x,
-			 data->gaze_norm_pos_y);
+			 data->pupil_confidence,
+			 data->pupil_norm_pos_x,
+			 data->pupil_norm_pos_y);
 
 		if (recorder->recording)
 		{
@@ -795,14 +792,14 @@ receive_data (Recorder *recorder)
 		g_string_append_printf (str,
 					"timestamp:%lf\n"
 					"pupil_diameter:%lf\n"
-					"gaze_norm_pos_x:%lf\n"
-					"gaze_norm_pos_y:%lf\n"
-					"confidence:%lf\n",
+					"pupil_norm_pos_x:%lf\n"
+					"pupil_norm_pos_y:%lf\n"
+					"pupil_confidence:%lf\n",
 					data->timestamp,
 					data->pupil_diameter,
-					data->gaze_norm_pos_x,
-					data->gaze_norm_pos_y,
-					data->confidence);
+					data->pupil_norm_pos_x,
+					data->pupil_norm_pos_y,
+					data->pupil_confidence);
 	}
 
 	return g_string_free (str, FALSE);
