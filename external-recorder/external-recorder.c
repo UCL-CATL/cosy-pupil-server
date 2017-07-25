@@ -792,8 +792,8 @@ receive_data (Recorder *recorder)
 		g_string_append_printf (str,
 					"timestamp:%lf\n"
 					"pupil_diameter:%lf\n"
-					"pupil_norm_pos_x:%lf\n"
-					"pupil_norm_pos_y:%lf\n"
+					"pupil_x:%lf\n"
+					"pupil_y:%lf\n"
 					"pupil_confidence:%lf\n",
 					data->timestamp,
 					data->pupil_diameter,
