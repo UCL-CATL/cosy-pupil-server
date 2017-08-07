@@ -1,3 +1,8 @@
+News in 2.1, 2017-08-07
+-----------------------
+* Extract both pupil and gaze x/y/confidence.
+* Improve documentation.
+
 News in 2.0, 2017-04-06
 -----------------------
 * Port the code to be compatible with Pupil Capture version 0.9.3.
