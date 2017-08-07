@@ -3,6 +3,10 @@ Pupil
 
 1. Connect the hardware.
 
+	With the MRI-compatible camera, it must be the UVC video grabber
+	(EasyCAP UVC). The "VIDEO OUT" must be connected on the yellow input of
+	the video grabber.
+
 2. Ensure that no other Docker containers run:
 
 	In a new terminal:
