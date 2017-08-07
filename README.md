@@ -41,9 +41,13 @@ Run the container
 external-recorder
 -----------------
 
+The current version of external-recorder has been developed and tested with
+Pupil Capture version 0.9.3, [docker-pupil](https://github.com/UCL-CATL/docker-pupil)
+version 2.
+
 It records some Pupil capture data, but externally to the Pupil software. The
 Pupil software is not modified, and it is not a plugin. So normally it will be
-easily re-usable for future versions of the Pupil.
+easily re-usable for future Pupil versions.
 
 The external-recorder acts as a mediator between Pupil Capture and
 [cosy-pupil-client](https://github.com/UCL-CATL/cosy-pupil-client). The
@@ -51,13 +55,12 @@ cosy-pupil-client talks only to the external-recorder with the Request-Reply
 ZeroMQ pattern. In our case cosy-pupil-client runs on another computer running
 a real-time Matlab program.
 
-The Pupil Remote plugin needs to be enabled in Pupil Capture. Pupil Capture
-publishes a stream of information with ZeroMQ, with the Publisher-Subscriber
-communication pattern. The external-recorder creates a subscriber and reads the
-messages.
+Pupil Capture publishes a stream of information with ZeroMQ, with the
+Publisher-Subscriber communication pattern. The external-recorder creates a
+subscriber and reads the messages.
 
-The external-recorder sends requests to the Pupil Capture software, via the
-Pupil Remote plugin, to start and stop the recording (Pupil Capture records
+The external-recorder also sends requests to the Pupil Capture software, via
+the Pupil Remote plugin, to start and stop the recording (Pupil Capture records
 more data than external-recorder, so it's better to start the recording on
 Pupil Capture too). This uses the Request-Reply ZeroMQ pattern.
 

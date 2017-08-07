@@ -26,6 +26,27 @@
 #include <zmq.h>
 #include <msgpack.h>
 
+/* Architecture notes:
+ *
+ * Why cosy-pupil-client (in our case Matlab) doesn't directly talk to Pupil
+ * Capture? external-recorder has been written for several reasons:
+ * - external-recorder provides a simpler and more stable ZeroMQ API (more
+ *   stable because when a new version of Pupil Capture changes its ZeroMQ API,
+ *   external-recorder needs to be adapted but there are chances that the
+ *   external-recorder API can remain mostly the same).
+ * - cosy-pupil-client runs on another computer, running a real-time program, so
+ *   communicating constantly with Pupil Capture would slow down the real-time
+ *   program.
+ * - external-recorder runs on the same computer as Pupil Capture, so there is a
+ *   lower latency between external-recorder and Pupil Capture.
+ * - When creating the ZeroMQ subscriber, we can loose the first messages that
+ *   the publisher published. So we need to listen constantly to the publisher,
+ *   as soon as external-recorder is launched, so that when we need to record
+ *   the data, we are ready and we won't miss frames. In other words, if the
+ *   subscriber was created at the same time as we want to start the recording,
+ *   we would loose some data.
+ */
+
 #define PUPIL_REMOTE_ADDRESS "tcp://localhost:50020"
 #define REPLIER_ENDPOINT "tcp://*:6000"
 
