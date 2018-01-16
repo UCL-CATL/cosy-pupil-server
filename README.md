@@ -91,3 +91,8 @@ It's important to do that, to be sure that we have recorded what we wanted,
 i.e. during the experiment. If the latency is too high, we miss some data. Of
 course this timer dance can be done a first time before the actual experiment,
 so if the latency is too high we know it directly.
+
+Developer documentation
+-----------------------
+
+See the `HACKING` file.

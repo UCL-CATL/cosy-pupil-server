@@ -1,0 +1,17 @@
+Developer documentation of cosy-pupil-server, external-recorder
+===============================================================
+
+External-recorder follows the same guidelines and code conventions as
+GtkSourceView:
+
+    https://git.gnome.org/browse/gtksourceview/tree/HACKING
+
+It uses the GLib library (only GLib core, not GObject nor GIO). To have an
+overview:
+
+    http://www.gtk.org/
+    https://people.gnome.org/~swilmet/gtk-brochure.pdf
+
+You can read an introduction to GLib in the following document:
+
+    https://people.gnome.org/~swilmet/glib-gtk-book/
