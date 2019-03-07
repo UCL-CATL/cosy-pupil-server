@@ -2,9 +2,7 @@ cosy-pupil-server
 =================
 
 Extend the [Pupil](https://pupil-labs.com/) eye tracking software with tools
-useful for neurosciences research at the Cognition and System division (COSY) of
-the [Institute of NeuroSciences](http://www.uclouvain.be/en-ions.html) at the
-Université Catholique de Louvain, Belgium.
+useful for neuroscience research.
 
 This repository contains the “server” part. It runs on the same computer as the
 Pupil software. See the [cosy-pupil-client](https://github.com/UCL-CATL/cosy-pupil-client)
@@ -17,6 +15,11 @@ Dockerfile is provided, see the instructions below to know how to build and run
 the container.
 
 cosy-pupil-server is licensed under the GNU General Public License version 3 or later.
+
+The software in this repository is developed by the
+[Institute of NeuroScience](https://uclouvain.be/en/research-institutes/ions),
+[UCLouvain](https://uclouvain.be/en/),
+Belgium.
 
 Dependencies
 ------------
